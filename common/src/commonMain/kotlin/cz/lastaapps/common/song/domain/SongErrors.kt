@@ -4,6 +4,7 @@ import cz.lastaapps.common.base.ErrorResult
 
 sealed class SongErrors(message: String?, throwable: Throwable?) : ErrorResult(message, throwable) {
     sealed class ParseError(message: String?, throwable: Throwable?) : SongErrors(message, throwable) {
+
         class FailedToMatchSongList(throwable: Throwable? = null) : ParseError("Failed to match song list", throwable)
 
         class FailedToMatchInterpreterList(throwable: Throwable? = null) :

@@ -1,9 +1,10 @@
 package cz.lastaapps.common.song.data.supermusic
 
 import cz.lastaapps.common.base.asSuccess
-import cz.lastaapps.common.base.util.LocalizedComparatorProviderImpl
+import cz.lastaapps.common.base.util.songBookHttpClient
 import cz.lastaapps.common.song.domain.model.Author
 import cz.lastaapps.common.song.domain.model.search.SearchedSong
+import cz.lastaapps.common.song.util.SearchedSongComparator
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveAtLeastSize
@@ -13,8 +14,8 @@ import io.kotest.matchers.string.shouldNotBeBlank
 internal class SuperMusicDataSourceImplTest : StringSpec({
 
     val source = SuperMusicDataSourceImpl(
-        SuperMusicDataSourceImpl.createHttpClient(),
-        LocalizedComparatorProviderImpl().createDefault(),
+        songBookHttpClient,
+        SearchedSongComparator(),
     )
 
     "searchByName" {

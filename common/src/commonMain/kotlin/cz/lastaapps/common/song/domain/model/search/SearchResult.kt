@@ -23,6 +23,7 @@ data class SearchedSong(
 
 sealed interface OnlineSource {
     object SuperMusicSk : OnlineSource
+    object ZpevnikSAkordy : OnlineSource
 }
 
 enum class SearchType {

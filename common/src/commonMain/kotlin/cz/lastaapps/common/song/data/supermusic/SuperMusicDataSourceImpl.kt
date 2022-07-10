@@ -8,28 +8,17 @@ import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
 import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import cz.lastaapps.common.song.domain.sources.SuperMusicDataSource
 import io.ktor.client.*
-import io.ktor.client.plugins.compression.*
 
 internal class SuperMusicDataSourceImpl(
-    private val client: HttpClient,
-    private val stringComparator: Comparator<String>,
+    client: HttpClient, comparator: Comparator<SearchedSong>,
 ) : SuperMusicDataSource {
 
     companion object {
-        fun createHttpClient() = HttpClient {
-            install(ContentEncoding)
-        }
-
         const val minQueryLength = 3
     }
 
-    private val songComparator = Comparator<SearchedSong> { p0, p1 ->
-        stringComparator.compare(p0.name, p1.name).takeUnless { it == 0 }
-            ?: stringComparator.compare(p0.author, p1.author)
-    }
-
-    private val songSearch = SuperMusicSongSearch(client, songComparator)
-    private val authorSearch = SuperMusicAuthorSearch(client, songComparator)
+    private val songSearch = SuperMusicSongSearch(client, comparator)
+    private val authorSearch = SuperMusicAuthorSearch(client, comparator)
     private val songLoader = SuperMusicSongLoader(client)
     private val searchByAuthor = AuthorSearchCombine(authorSearch)
 
