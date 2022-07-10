@@ -49,5 +49,5 @@ android {
 }
 
 dependencies {
-    implementation(Dependency.Androidx.appcompat)
+    implementation(Dependency.AndroidX.appcompat)
 }

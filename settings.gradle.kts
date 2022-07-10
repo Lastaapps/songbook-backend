@@ -13,4 +13,9 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Songbook"
-include(":app")
+//include(
+//    ":app",
+//)
+include(
+    ":common",
+)
