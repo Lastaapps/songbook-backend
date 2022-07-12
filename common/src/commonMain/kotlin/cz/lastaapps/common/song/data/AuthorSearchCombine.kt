@@ -15,9 +15,9 @@ internal class AuthorSearchCombine(private val authorSource: SearchAuthorDataSou
         val songs = interpreters.asSuccess().data.filter { it.songNumber != 0 }.map {
             val res = authorSource.loadSongsForAuthor(it)
             if (res.isError()) return res.casted()
-            res.asSuccess().data
+            res.asSuccess().data.results
         }.flatten()
 
-        return OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.AUTHOR), songs).toSuccess()
+        return OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.AUTHOR), songs).toResult()
     }
 }

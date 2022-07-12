@@ -1,9 +1,13 @@
 package cz.lastaapps.common.song.data.supermusic
 
-import cz.lastaapps.common.base.*
+import cz.lastaapps.common.base.Result
+import cz.lastaapps.common.base.casted
+import cz.lastaapps.common.base.get
+import cz.lastaapps.common.base.toResult
 import cz.lastaapps.common.base.util.bodyAsSafeText
 import cz.lastaapps.common.base.util.removeAccents
-import cz.lastaapps.common.song.domain.SearchSongDataSource
+import cz.lastaapps.common.song.domain.SearchSongByNameDataSource
+import cz.lastaapps.common.song.domain.SearchSongByTextDataSource
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.search.*
 import io.ktor.client.*
@@ -11,18 +15,18 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import org.lighthousegames.logging.logging
 
-internal class SuperMusicSongSearch(
+internal class SuperMusicSongSearchByName(
     private val client: HttpClient,
     private val songComparator: Comparator<SearchedSong>,
-) : SearchSongDataSource {
+) : SearchSongByNameDataSource, SearchSongByTextDataSource {
 
     companion object {
         private val log = logging()
     }
 
     override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
-        val minQuery = SuperMusicDataSourceImpl.minQueryLength
-        if (query.length < minQuery) return SongErrors.ParseError.ToShortQuery(minQuery).toResult()
+        val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
+        if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
         val response = client.get {
             searchUrl(query, true)
@@ -30,13 +34,13 @@ internal class SuperMusicSongSearch(
 
         val data = response.parse()
         return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.NAME), it).toSuccess()
+            OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.NAME), it).toResult()
         } ?: data.casted()
     }
 
     override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
-        val minQuery = SuperMusicDataSourceImpl.minQueryLength
-        if (query.length < minQuery) return SongErrors.ParseError.ToShortQuery(minQuery).toResult()
+        val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
+        if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
         val response = client.get {
             searchUrl(query, false)
@@ -44,7 +48,7 @@ internal class SuperMusicSongSearch(
 
         val data = response.parse()
         return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.TEXT), it).toSuccess()
+            OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.TEXT), it).toResult()
         } ?: data.casted()
     }
 
@@ -70,15 +74,18 @@ internal class SuperMusicSongSearch(
             ?: return SongErrors.ParseError.FailedToMatchSongList(Throwable()).toResult()
 
         return songFindIndividual.findAll(selectionOnly).map { result ->
-            val (id, name, styles, author) = result.destructured
+            val (id, name, type, author) = result.destructured
 
-            val styleList = listOf(
-                "text" to SongType.TEXT, "akordy" to SongType.CHORDS,
-                "taby" to SongType.TAB, "melodia" to SongType.NOTES,
-                "preklad" to SongType.TRANSLATION,
-            ).asSequence().filter { styles.contains(it.first) }.map { it.second }.toSet()
+            val mainStyle = when {
+                type.contains("akordy") -> SongType.CHORDS
+                type.contains("texty") -> SongType.TEXT
+                type.contains("taby") -> SongType.TAB
+                type.contains("melodie") -> SongType.NOTES
+                type.contains("preklady") -> SongType.TRANSLATION
+                else -> SongType.UNKNOWN
+            }
 
-            SearchedSong(id, name, author, styleList, "https://supermusic.cz/skupina.php?idpiesne=$id")
-        }.toList().sortedWith(songComparator).toSuccess()
+            SearchedSong(id, name, author, mainStyle, "https://supermusic.cz/skupina.php?idpiesne=$id")
+        }.toList().sortedWith(songComparator).toResult()
     }
 }

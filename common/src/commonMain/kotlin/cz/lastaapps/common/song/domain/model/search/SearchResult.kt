@@ -10,7 +10,7 @@ data class SearchedSong(
     val id: String,
     val name: String,
     val author: String?,
-    val types: Collection<SongType>,
+    val type: SongType,
     val link: String,
 ) : Comparable<SearchedSong> {
     override fun compareTo(other: SearchedSong): Int {
@@ -22,6 +22,7 @@ data class SearchedSong(
 }
 
 sealed interface OnlineSource {
+    object PisnickyAkordy : OnlineSource
     object SuperMusicSk : OnlineSource
     object ZpevnikSAkordy : OnlineSource
 }
@@ -31,5 +32,5 @@ enum class SearchType {
 }
 
 enum class SongType {
-    TEXT, CHORDS, TAB, NOTES, TRANSLATION;
+    TEXT, CHORDS, TAB, NOTES, TRANSLATION, UNKNOWN;
 }

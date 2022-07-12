@@ -5,4 +5,5 @@ plugins {
 //    id(Plugins.Android.application) version (gradleVersion) apply false
 //    id(Plugins.Android.library) version (gradleVersion) apply false
     id(Plugins.Kotlin.android) version Dependency.Kotlin.version apply false
+    id(Plugins.Kotlin.serialization) version Dependency.Kotlin.version apply false
 }

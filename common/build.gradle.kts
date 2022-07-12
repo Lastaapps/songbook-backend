@@ -1,6 +1,7 @@
 plugins {
     id(Plugins.Kotlin.multiplatform)
 //    id(Plugins.Android.library)
+    id(Plugins.Kotlin.serialization)
 }
 
 group = App.GROUP
@@ -40,6 +41,8 @@ kotlin {
 
                 implementation(Dependency.Ktor.core)
                 implementation(Dependency.Ktor.encoding)
+                implementation(Dependency.Ktor.contentNegotiation)
+                implementation(Dependency.Ktor.serialization)
 
                 implementation(Dependency.Kodein.kodein)
             }

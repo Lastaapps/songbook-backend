@@ -8,7 +8,7 @@ sealed interface Result<T : Any> {
 
 open class ErrorResult(val message: String?, val throwable: Throwable?)
 
-fun <T : Any> T.toSuccess() = Result.Success(this)
+fun <T : Any> T.toResult() = Result.Success(this)
 fun <T : Any> ErrorResult.toResult() = Result.Error<T>(this)
 fun <T : Any, R : Any> Result<T>.casted() = asError().error.toResult<R>()
 fun <T : Any> Result<T>.isSuccess() = this is Result.Success

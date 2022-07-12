@@ -2,7 +2,6 @@ package cz.lastaapps.common.song.data.supermusic
 
 import cz.lastaapps.common.base.Result
 import cz.lastaapps.common.base.toResult
-import cz.lastaapps.common.base.toSuccess
 import cz.lastaapps.common.base.util.bodyAsSafeText
 import cz.lastaapps.common.base.util.dropToMuchLines
 import cz.lastaapps.common.base.util.trimLines
@@ -55,6 +54,6 @@ internal class SuperMusicSongLoader(
                 with(song) {
                     Song(id, name, author, text, link, null)
                 }
-            }?.toSuccess() ?: SongErrors.ParseError.SongCouldNotBeRead().toResult()
+            }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()
     }
 }

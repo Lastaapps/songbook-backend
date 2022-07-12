@@ -4,20 +4,17 @@ import cz.lastaapps.common.base.*
 import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Song
-import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
-import cz.lastaapps.common.song.domain.model.search.OnlineSource
-import cz.lastaapps.common.song.domain.model.search.SearchType
-import cz.lastaapps.common.song.domain.model.search.SearchedSong
-import cz.lastaapps.common.song.domain.sources.ZpevnikSAkordyDataSource
+import cz.lastaapps.common.song.domain.model.search.*
+import cz.lastaapps.common.song.domain.sources.ZpevnikSAkordyByNameDataSource
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import org.lighthousegames.logging.logging
 
-class ZpevnikSAkordyDataSourceImpl(
+class ZpevnikSAkordyByNameDataSourceImpl(
     private val client: HttpClient,
     private val comparator: Comparator<SearchedSong>,
-) : ZpevnikSAkordyDataSource {
+) : ZpevnikSAkordyByNameDataSource {
 
     companion object {
         private val log = logging()
@@ -33,7 +30,7 @@ class ZpevnikSAkordyDataSourceImpl(
             OnlineSource.ZpevnikSAkordy,
             listOf(SearchType.NAME),
             songs.asSuccess().data,
-        ).toSuccess()
+        ).toResult()
     }
 
     override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
@@ -46,7 +43,7 @@ class ZpevnikSAkordyDataSourceImpl(
             OnlineSource.ZpevnikSAkordy,
             listOf(SearchType.TEXT),
             songs.asSuccess().data,
-        ).toSuccess()
+        ).toResult()
     }
 
     override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> {
@@ -59,7 +56,7 @@ class ZpevnikSAkordyDataSourceImpl(
             OnlineSource.ZpevnikSAkordy,
             listOf(SearchType.AUTHOR),
             songs.asSuccess().data,
-        ).toSuccess()
+        ).toResult()
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
@@ -70,7 +67,7 @@ class ZpevnikSAkordyDataSourceImpl(
 
     private fun String.parseSongList(): Result<List<SearchedSong>> {
         val main = mainFilter.find(this)?.groupValues?.getOrNull(1)
-            ?: Unit.takeIf { this.contains(songEmptySearch) }?.let { return emptyList<SearchedSong>().toSuccess() }
+            ?: Unit.takeIf { this.contains(songEmptySearch) }?.let { return emptyList<SearchedSong>().toResult() }
             ?: return SongErrors.ParseError.FailedToMatchSongList().toResult()
         return itemsFilter.findAll(main).map { match ->
             val (songId, songName, _, authorName) = match.destructured
@@ -78,10 +75,10 @@ class ZpevnikSAkordyDataSourceImpl(
                 songId,
                 songName,
                 authorName.takeIf { it.isNotBlank() },
-                emptySet(),
+                SongType.UNKNOWN,
                 "http://zpevnik.wz.cz/index.php?id=$songId"
             )
-        }.toList().sortedWith(comparator).toSuccess()
+        }.toList().sortedWith(comparator).toResult()
     }
 
     private fun HttpRequestBuilder.setupUrl(name: String? = null, text: String? = null, author: String? = null) {
@@ -98,7 +95,7 @@ class ZpevnikSAkordyDataSourceImpl(
         val html = client.get(song.link).also { log.i { "Retrieving ${it.request.url}" } }.bodyAsText()
         val text = songTextMatch.find(html)?.groupValues?.get(1)
             ?.lines()?.trimLines()?.joinToString(separator = "\n")
-            ?: return SongErrors.ParseError.SongCouldNotBeRead().toResult()
-        return with(song) { Song(id, name, author, text, link, null) }.toSuccess()
+            ?: return SongErrors.ParseError.FailedToMatchSongText().toResult()
+        return with(song) { Song(id, name, author, text, link, null) }.toResult()
     }
 }
