@@ -121,7 +121,7 @@ class PisnickyAkordyByNameDataSourceImpl(
             .replace("</span>".toRegex(), "]")
             .lines().trimLines().joinLines()
 
-        return with(song) { Song(id, name, author, songText, link, null) }.toResult()
+        return with(song) { Song(id, name, author, songText, OnlineSource.PisnickyAkordy, link, null) }.toResult()
     }
 
     override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> =

@@ -5,11 +5,9 @@ import cz.lastaapps.common.base.util.songBookHttpClient
 import cz.lastaapps.common.song.data.agama.AgamaDataSourceImpl
 import cz.lastaapps.common.song.data.pisnickyakordy.PisnickyAkordyByNameDataSourceImpl
 import cz.lastaapps.common.song.data.supermusic.SuperMusicByNameDataSourceImpl
+import cz.lastaapps.common.song.data.velkyzpevnik.VelkyZpevnikDataSourceImpl
 import cz.lastaapps.common.song.data.zpevniksakordy.ZpevnikSAkordyByNameDataSourceImpl
-import cz.lastaapps.common.song.domain.sources.AgamaDataSource
-import cz.lastaapps.common.song.domain.sources.PisnickyAkordyByNameDataSource
-import cz.lastaapps.common.song.domain.sources.SuperMusicByNameDataSource
-import cz.lastaapps.common.song.domain.sources.ZpevnikSAkordyByNameDataSource
+import cz.lastaapps.common.song.domain.sources.*
 import cz.lastaapps.common.song.util.SearchedSongComparator
 import org.kodein.di.DI
 import org.kodein.di.bindProvider
@@ -29,5 +27,6 @@ val module = DI.Module {
     bindProvider<AgamaDataSource> { AgamaDataSourceImpl(instance()) }
     bindProvider<PisnickyAkordyByNameDataSource> { PisnickyAkordyByNameDataSourceImpl(instance()) }
     bindProvider<SuperMusicByNameDataSource> { SuperMusicByNameDataSourceImpl(instance()) }
+    bindProvider<VelkyZpevnikDataSource> { VelkyZpevnikDataSourceImpl(instance()) }
     bindProvider<ZpevnikSAkordyByNameDataSource> { ZpevnikSAkordyByNameDataSourceImpl(instance()) }
 }

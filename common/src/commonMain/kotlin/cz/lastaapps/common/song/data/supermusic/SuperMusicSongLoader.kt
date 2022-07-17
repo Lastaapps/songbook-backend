@@ -9,6 +9,7 @@ import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.domain.LoadSongDataSource
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Song
+import cz.lastaapps.common.song.domain.model.search.OnlineSource
 import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -53,7 +54,7 @@ internal class SuperMusicSongLoader(
                     .dropToMuchLines()
                     .joinLines()
                 with(song) {
-                    Song(id, name, author, text, link, null)
+                    Song(id, name, author, text, OnlineSource.SuperMusic, link, null)
                 }
             }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()
     }

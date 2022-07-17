@@ -93,6 +93,6 @@ class ZpevnikSAkordyByNameDataSourceImpl(
         val text = songTextMatch.find(html)?.groupValues?.get(1)
             ?.lines()?.trimLines()?.joinLines()
             ?: return SongErrors.ParseError.FailedToMatchSongText().toResult()
-        return with(song) { Song(id, name, author, text, link, null) }.toResult()
+        return with(song) { Song(id, name, author, text, OnlineSource.ZpevnikSAkordy, link, null) }.toResult()
     }
 }

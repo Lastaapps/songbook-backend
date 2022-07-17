@@ -39,7 +39,7 @@ internal class SuperMusicSongSearchByName(
 
         val data = response.parse()
         return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusicSk, SearchType.NAME, it).toResult()
+            OnlineSearchResult(OnlineSource.SuperMusic, SearchType.NAME, it).toResult()
         } ?: data.casted()
     }
 
@@ -53,7 +53,7 @@ internal class SuperMusicSongSearchByName(
 
         val data = response.parse()
         return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusicSk, SearchType.TEXT, it).toResult()
+            OnlineSearchResult(OnlineSource.SuperMusic, SearchType.TEXT, it).toResult()
         } ?: data.casted()
     }
 

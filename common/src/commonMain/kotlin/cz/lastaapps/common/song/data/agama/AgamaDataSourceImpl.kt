@@ -152,7 +152,7 @@ class AgamaDataSourceImpl(
         val text = (if (ytb == null) fetched.text else fetched.text.replace(ytb, "")).lines().trimLines().joinLines()
 
         return with(song) {
-            Song(id, name, song.author, text, link, ytb)
+            Song(id, name, song.author, text, OnlineSource.Agama, link, ytb)
         }.toResult()
     }
 }

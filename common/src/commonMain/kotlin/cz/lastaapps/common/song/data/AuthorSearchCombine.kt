@@ -19,6 +19,6 @@ internal class AuthorSearchCombine(private val authorSource: SearchAuthorDataSou
             res.asSuccess().data.results
         }.flatten().toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.SuperMusicSk, SearchType.AUTHOR, songs).toResult()
+        return OnlineSearchResult(OnlineSource.SuperMusic, SearchType.AUTHOR, songs).toResult()
     }
 }
