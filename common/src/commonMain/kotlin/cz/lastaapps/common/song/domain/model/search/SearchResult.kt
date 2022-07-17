@@ -22,6 +22,7 @@ data class SearchedSong(
 }
 
 sealed interface OnlineSource {
+    object Agama : OnlineSource
     object PisnickyAkordy : OnlineSource
     object SuperMusicSk : OnlineSource
     object ZpevnikSAkordy : OnlineSource

@@ -2,9 +2,11 @@ package cz.lastaapps.common
 
 import cz.lastaapps.common.base.util.LocalizedComparatorProvider
 import cz.lastaapps.common.base.util.songBookHttpClient
+import cz.lastaapps.common.song.data.agama.AgamaDataSourceImpl
 import cz.lastaapps.common.song.data.pisnickyakordy.PisnickyAkordyByNameDataSourceImpl
 import cz.lastaapps.common.song.data.supermusic.SuperMusicByNameDataSourceImpl
 import cz.lastaapps.common.song.data.zpevniksakordy.ZpevnikSAkordyByNameDataSourceImpl
+import cz.lastaapps.common.song.domain.sources.AgamaDataSource
 import cz.lastaapps.common.song.domain.sources.PisnickyAkordyByNameDataSource
 import cz.lastaapps.common.song.domain.sources.SuperMusicByNameDataSource
 import cz.lastaapps.common.song.domain.sources.ZpevnikSAkordyByNameDataSource
@@ -24,6 +26,7 @@ val module = DI.Module {
         SearchedSongComparator(instance<LocalizedComparatorProvider>().createDefault())
     }
 
+    bindProvider<AgamaDataSource> { AgamaDataSourceImpl(instance(), instance()) }
     bindProvider<PisnickyAkordyByNameDataSource> { PisnickyAkordyByNameDataSourceImpl(instance(), instance()) }
     bindProvider<SuperMusicByNameDataSource> { SuperMusicByNameDataSourceImpl(instance(), instance()) }
     bindProvider<ZpevnikSAkordyByNameDataSource> { ZpevnikSAkordyByNameDataSourceImpl(instance(), instance()) }

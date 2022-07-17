@@ -2,6 +2,7 @@ package cz.lastaapps.common.song.data.pisnickyakordy
 
 import cz.lastaapps.common.base.Result
 import cz.lastaapps.common.base.toResult
+import cz.lastaapps.common.base.util.joinLines
 import cz.lastaapps.common.base.util.removeAccents
 import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.data.AuthorSearchCombine
@@ -113,7 +114,7 @@ class PisnickyAkordyByNameDataSourceImpl(
             .replace("</el", "")
             .replace("<span[^<>]*>".toRegex(), "[")
             .replace("</span>".toRegex(), "]")
-            .lines().trimLines().joinToString(separator = "\n")
+            .lines().trimLines().joinLines()
 
         return with(song) { Song(id, name, author, songText, link, null) }.toResult()
     }

@@ -4,6 +4,7 @@ import cz.lastaapps.common.base.Result
 import cz.lastaapps.common.base.toResult
 import cz.lastaapps.common.base.util.bodyAsSafeText
 import cz.lastaapps.common.base.util.dropToMuchLines
+import cz.lastaapps.common.base.util.joinLines
 import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.domain.LoadSongDataSource
 import cz.lastaapps.common.song.domain.SongErrors
@@ -50,7 +51,7 @@ internal class SuperMusicSongLoader(
                     .lines()
                     .trimLines()
                     .dropToMuchLines()
-                    .joinToString(separator = "\n")
+                    .joinLines()
                 with(song) {
                     Song(id, name, author, text, link, null)
                 }

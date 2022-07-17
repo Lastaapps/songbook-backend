@@ -1,6 +1,7 @@
 package cz.lastaapps.common.song.data.zpevniksakordy
 
 import cz.lastaapps.common.base.*
+import cz.lastaapps.common.base.util.joinLines
 import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Song
@@ -94,7 +95,7 @@ class ZpevnikSAkordyByNameDataSourceImpl(
     override suspend fun loadSong(song: SearchedSong): Result<Song> {
         val html = client.get(song.link).also { log.i { "Retrieving ${it.request.url}" } }.bodyAsText()
         val text = songTextMatch.find(html)?.groupValues?.get(1)
-            ?.lines()?.trimLines()?.joinToString(separator = "\n")
+            ?.lines()?.trimLines()?.joinLines()
             ?: return SongErrors.ParseError.FailedToMatchSongText().toResult()
         return with(song) { Song(id, name, author, text, link, null) }.toResult()
     }
