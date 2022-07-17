@@ -9,15 +9,20 @@ import cz.lastaapps.common.base.util.removeAccents
 import cz.lastaapps.common.song.domain.SearchSongByNameDataSource
 import cz.lastaapps.common.song.domain.SearchSongByTextDataSource
 import cz.lastaapps.common.song.domain.SongErrors
-import cz.lastaapps.common.song.domain.model.search.*
+import cz.lastaapps.common.song.domain.model.SongType
+import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
+import cz.lastaapps.common.song.domain.model.search.OnlineSource
+import cz.lastaapps.common.song.domain.model.search.SearchType
+import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toPersistentList
 import org.lighthousegames.logging.logging
 
 internal class SuperMusicSongSearchByName(
     private val client: HttpClient,
-    private val songComparator: Comparator<SearchedSong>,
 ) : SearchSongByNameDataSource, SearchSongByTextDataSource {
 
     companion object {
@@ -34,7 +39,7 @@ internal class SuperMusicSongSearchByName(
 
         val data = response.parse()
         return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.NAME), it).toResult()
+            OnlineSearchResult(OnlineSource.SuperMusicSk, SearchType.NAME, it).toResult()
         } ?: data.casted()
     }
 
@@ -48,7 +53,7 @@ internal class SuperMusicSongSearchByName(
 
         val data = response.parse()
         return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.TEXT), it).toResult()
+            OnlineSearchResult(OnlineSource.SuperMusicSk, SearchType.TEXT, it).toResult()
         } ?: data.casted()
     }
 
@@ -66,7 +71,7 @@ internal class SuperMusicSongSearchByName(
         """<a[^<>]* href="[^"]*idpiesne=(\d+)[^"]*"[^<>]*><b>([^<>]*)</b></a> - ([^<>]+) \(<a[^<>]*>([^<>]*)</a>\)"""
             .toRegex(regexOption)
 
-    private suspend fun HttpResponse.parse(): Result<List<SearchedSong>> {
+    private suspend fun HttpResponse.parse(): Result<ImmutableList<SearchedSong>> {
         log.i { headers }
 
         val text = bodyAsSafeText()
@@ -86,6 +91,6 @@ internal class SuperMusicSongSearchByName(
             }
 
             SearchedSong(id, name, author, mainStyle, "https://supermusic.cz/skupina.php?idpiesne=$id")
-        }.toList().sortedWith(songComparator).toResult()
+        }.toPersistentList().toResult()
     }
 }

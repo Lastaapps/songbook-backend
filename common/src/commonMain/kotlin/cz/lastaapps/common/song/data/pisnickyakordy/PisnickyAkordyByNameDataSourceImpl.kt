@@ -10,17 +10,22 @@ import cz.lastaapps.common.song.data.pisnickyakordy.model.PisnickyAkordySearched
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Author
 import cz.lastaapps.common.song.domain.model.Song
-import cz.lastaapps.common.song.domain.model.search.*
+import cz.lastaapps.common.song.domain.model.SongType
+import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
+import cz.lastaapps.common.song.domain.model.search.OnlineSource
+import cz.lastaapps.common.song.domain.model.search.SearchType
+import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import cz.lastaapps.common.song.domain.sources.PisnickyAkordyByNameDataSource
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import org.lighthousegames.logging.logging
 
 class PisnickyAkordyByNameDataSourceImpl(
     private val client: HttpClient,
-    private val comparator: Comparator<SearchedSong>
 ) : PisnickyAkordyByNameDataSource {
 
     companion object {
@@ -44,12 +49,12 @@ class PisnickyAkordyByNameDataSourceImpl(
                 log.e(e) { "Failed to deserialize searched items" }
                 return SongErrors.ParseError.FailedToMatchSongList(e).toResult()
             }.map { with(it) { SearchedSong(id, name, author, SongType.UNKNOWN, linkForId(link)) } }
-        }.flatten().toSet().sortedWith(comparator)
+        }.flatten().toSet().toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.PisnickyAkordy, setOf(SearchType.NAME), songs).toResult()
+        return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.NAME, songs).toResult()
     }
 
-    override suspend fun searchAuthors(query: String): Result<List<Author>> {
+    override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> {
         val noAccent = client.get { setupUrl(query, true, author = true) }
         val accent = client.get { setupUrl(query, false, author = true) }
 
@@ -59,7 +64,7 @@ class PisnickyAkordyByNameDataSourceImpl(
             } catch (e: Exception) {
                 return SongErrors.ParseError.FailedToMatchSongList(e).toResult()
             }.map { with(it) { Author(id, name, null, linkForId(link)) } }
-        }.flatten().toSet().toList().toResult()
+        }.flatten().toSet().toImmutableList().toResult()
     }
 
     private val authorSongListMatcher =
@@ -82,9 +87,9 @@ class PisnickyAkordyByNameDataSourceImpl(
                 else -> SongType.TEXT
             }
             SearchedSong(link, name.trim(), author.name, foundType, linkForId(link))
-        }.filterNotNull().toMutableList().apply { sortWith(comparator) }
+        }.filterNotNull().toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.PisnickyAkordy, listOf(SearchType.AUTHOR), songs).toResult()
+        return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.AUTHOR, songs).toResult()
     }
 
     private fun HttpRequestBuilder.setupUrl(

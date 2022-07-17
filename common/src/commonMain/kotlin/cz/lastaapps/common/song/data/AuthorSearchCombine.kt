@@ -6,6 +6,7 @@ import cz.lastaapps.common.song.domain.SearchSongByAuthorDataSource
 import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
 import cz.lastaapps.common.song.domain.model.search.OnlineSource
 import cz.lastaapps.common.song.domain.model.search.SearchType
+import kotlinx.collections.immutable.toImmutableList
 
 internal class AuthorSearchCombine(private val authorSource: SearchAuthorDataSource) : SearchSongByAuthorDataSource {
     override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> {
@@ -16,8 +17,8 @@ internal class AuthorSearchCombine(private val authorSource: SearchAuthorDataSou
             val res = authorSource.loadSongsForAuthor(it)
             if (res.isError()) return res.casted()
             res.asSuccess().data.results
-        }.flatten()
+        }.flatten().toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.SuperMusicSk, setOf(SearchType.AUTHOR), songs).toResult()
+        return OnlineSearchResult(OnlineSource.SuperMusicSk, SearchType.AUTHOR, songs).toResult()
     }
 }

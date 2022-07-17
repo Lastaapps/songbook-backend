@@ -9,18 +9,25 @@ import cz.lastaapps.common.song.data.agama.model.AgamaPersonDto
 import cz.lastaapps.common.song.data.agama.model.AgamaSongDetailDto
 import cz.lastaapps.common.song.domain.model.Author
 import cz.lastaapps.common.song.domain.model.Song
-import cz.lastaapps.common.song.domain.model.search.*
+import cz.lastaapps.common.song.domain.model.SongType
+import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
+import cz.lastaapps.common.song.domain.model.search.OnlineSource
+import cz.lastaapps.common.song.domain.model.search.SearchType
+import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import cz.lastaapps.common.song.domain.sources.AgamaDataSource
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.lighthousegames.logging.logging
 
 class AgamaDataSourceImpl(
     private val client: HttpClient,
-    private val comparator: Comparator<SearchedSong>,
 ) : AgamaDataSource {
 
     companion object {
@@ -38,14 +45,15 @@ class AgamaDataSourceImpl(
             it.name.removeAccents().let { parts.any { part -> it.contains(part) } }
         }.map { Author(it.id, it.name, null, agamaLink(it.id)) }
 
-        val songs = mutableSetOf<SearchedSong>()
-        authors.forEach {
-            val res = loadSongsForAuthor(it)
-            if (res.isError()) return res.casted()
-            songs.addAll(res.asSuccess().data.results)
+        val songs = persistentListOf<SearchedSong>().mutate { list ->
+            authors.forEach {
+                val res = loadSongsForAuthor(it)
+                if (res.isError()) return res.casted()
+                list.addAll(res.asSuccess().data.results)
+            }
         }
 
-        return OnlineSearchResult(OnlineSource.Agama, setOf(SearchType.AUTHOR), songs).toResult()
+        return OnlineSearchResult(OnlineSource.Agama, SearchType.AUTHOR, songs).toResult()
     }
 
     override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
@@ -61,9 +69,9 @@ class AgamaDataSourceImpl(
             }
         }.flatten().filter {
             it.name.removeAccents().let { parts.any { part -> it.contains(part) } }
-        }.sortedWith(comparator).toList()
+        }.toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.Agama, setOf(SearchType.NAME), songs).toResult()
+        return OnlineSearchResult(OnlineSource.Agama, SearchType.NAME, songs).toResult()
     }
 
     override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
@@ -75,12 +83,12 @@ class AgamaDataSourceImpl(
             author.songs.map { song ->
                 SearchedSong(song.id, song.name, author.name, SongType.CHORDS, agamaLink(song.id))
             }
-        }.flatten().sortedWith(comparator).toList()
+        }.flatten().toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.Agama, setOf(SearchType.NAME), songs).toResult()
+        return OnlineSearchResult(OnlineSource.Agama, SearchType.NAME, songs).toResult()
     }
 
-    override suspend fun searchAuthors(query: String): Result<List<Author>> {
+    override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> {
         val dtoList = doSearchByEverything(query)
         if (dtoList.isError()) return dtoList.casted()
 
@@ -89,7 +97,7 @@ class AgamaDataSourceImpl(
         return dtoList.asSuccess().data.asSequence().filter {
             it.name.removeAccents().let { parts.any { part -> it.contains(part) } }
         }
-            .map { with(it) { Author(id, name, null, agamaLink(id)) } }.toList().toResult()
+            .map { with(it) { Author(id, name, null, agamaLink(id)) } }.toImmutableList().toResult()
     }
 
     private suspend fun doSearchByEverything(query: String): Result<List<AgamaInterpretDto>> {
@@ -127,9 +135,9 @@ class AgamaDataSourceImpl(
 
         val songs = person.songs.map { song ->
             SearchedSong(song.id, song.name, author.name, SongType.CHORDS, agamaLink(song.id))
-        }.sortedWith(comparator)
+        }.toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.Agama, setOf(SearchType.AUTHOR), songs).toResult()
+        return OnlineSearchResult(OnlineSource.Agama, SearchType.AUTHOR, songs).toResult()
     }
 
     private val youtubeUrlMatcher = """(https://www\.youtube\.com/watch\?v=.+)$""".toRegex()

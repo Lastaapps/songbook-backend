@@ -2,8 +2,6 @@ object Dependency {
 
     const val desugaring = "com.android.tools:desugar_jdk_libs:1.1.5"
 
-    const val kotlinxDatetime =
-        "org.jetbrains.kotlinx:kotlinx-datetime:0.4.0"
     const val kmLogging = "org.lighthousegames:logging:1.1.1"
     const val logback = "ch.qos.logback:logback-classic:1.2.11"
     const val qrgen = "com.github.kenglxn.QRGen:android:2.6.0" // jitpack
@@ -26,9 +24,12 @@ object Dependency {
             const val test =
                 "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion"
         }
+    }
 
-        const val serializationJson =
-            "org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3"
+    object KotlinX {
+        const val dateTime = "org.jetbrains.kotlinx:kotlinx-datetime:0.4.0"
+        const val serializationJson = "org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3"
+        const val collectionImmutable = "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5"
     }
 
     object Ktor {

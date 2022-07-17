@@ -26,8 +26,8 @@ val module = DI.Module {
         SearchedSongComparator(instance<LocalizedComparatorProvider>().createDefault())
     }
 
-    bindProvider<AgamaDataSource> { AgamaDataSourceImpl(instance(), instance()) }
-    bindProvider<PisnickyAkordyByNameDataSource> { PisnickyAkordyByNameDataSourceImpl(instance(), instance()) }
-    bindProvider<SuperMusicByNameDataSource> { SuperMusicByNameDataSourceImpl(instance(), instance()) }
-    bindProvider<ZpevnikSAkordyByNameDataSource> { ZpevnikSAkordyByNameDataSourceImpl(instance(), instance()) }
+    bindProvider<AgamaDataSource> { AgamaDataSourceImpl(instance()) }
+    bindProvider<PisnickyAkordyByNameDataSource> { PisnickyAkordyByNameDataSourceImpl(instance()) }
+    bindProvider<SuperMusicByNameDataSource> { SuperMusicByNameDataSourceImpl(instance()) }
+    bindProvider<ZpevnikSAkordyByNameDataSource> { ZpevnikSAkordyByNameDataSourceImpl(instance()) }
 }

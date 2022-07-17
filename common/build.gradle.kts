@@ -35,7 +35,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(Dependency.kotlinxDatetime)
+                implementation(Dependency.KotlinX.dateTime)
+                implementation(Dependency.KotlinX.collectionImmutable)
                 implementation(Dependency.kmLogging)
                 implementation(Dependency.fluidLocale)
 

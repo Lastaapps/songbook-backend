@@ -5,16 +5,22 @@ import cz.lastaapps.common.base.util.joinLines
 import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Song
-import cz.lastaapps.common.song.domain.model.search.*
+import cz.lastaapps.common.song.domain.model.SongType
+import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
+import cz.lastaapps.common.song.domain.model.search.OnlineSource
+import cz.lastaapps.common.song.domain.model.search.SearchType
+import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import cz.lastaapps.common.song.domain.sources.ZpevnikSAkordyByNameDataSource
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.lighthousegames.logging.logging
 
 class ZpevnikSAkordyByNameDataSourceImpl(
     private val client: HttpClient,
-    private val comparator: Comparator<SearchedSong>,
 ) : ZpevnikSAkordyByNameDataSource {
 
     companion object {
@@ -27,11 +33,7 @@ class ZpevnikSAkordyByNameDataSourceImpl(
         }.also { log.i { "Retrieving ${it.request.url}" } }
             .bodyAsText().parseSongList()
         if (songs.isError()) return songs.casted()
-        return OnlineSearchResult(
-            OnlineSource.ZpevnikSAkordy,
-            listOf(SearchType.NAME),
-            songs.asSuccess().data,
-        ).toResult()
+        return OnlineSearchResult(OnlineSource.ZpevnikSAkordy, SearchType.NAME, songs.asSuccess().data).toResult()
     }
 
     override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
@@ -40,11 +42,7 @@ class ZpevnikSAkordyByNameDataSourceImpl(
         }.also { log.i { "Retrieving ${it.request.url}" } }
             .bodyAsText().parseSongList()
         if (songs.isError()) return songs.casted()
-        return OnlineSearchResult(
-            OnlineSource.ZpevnikSAkordy,
-            listOf(SearchType.TEXT),
-            songs.asSuccess().data,
-        ).toResult()
+        return OnlineSearchResult(OnlineSource.ZpevnikSAkordy, SearchType.TEXT, songs.asSuccess().data).toResult()
     }
 
     override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> {
@@ -53,11 +51,7 @@ class ZpevnikSAkordyByNameDataSourceImpl(
         }.also { log.i { "Retrieving ${it.request.url}" } }
             .bodyAsText().parseSongList()
         if (songs.isError()) return songs.casted()
-        return OnlineSearchResult(
-            OnlineSource.ZpevnikSAkordy,
-            listOf(SearchType.AUTHOR),
-            songs.asSuccess().data,
-        ).toResult()
+        return OnlineSearchResult(OnlineSource.ZpevnikSAkordy, SearchType.AUTHOR, songs.asSuccess().data).toResult()
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
@@ -66,10 +60,12 @@ class ZpevnikSAkordyByNameDataSourceImpl(
         """<li[^<>]*><a[^<>]* href="\?id=(\d+)"[^<>]*>([^<>]+)</a>[^<>]*\(<a[^<>]* href="\?id=(\d+)"[^<>]*>([^<]*)</a>\)</li>"""
             .toRegex(regexOption)
 
-    private fun String.parseSongList(): Result<List<SearchedSong>> {
+    private fun String.parseSongList(): Result<ImmutableList<SearchedSong>> {
         val main = mainFilter.find(this)?.groupValues?.getOrNull(1)
-            ?: Unit.takeIf { this.contains(songEmptySearch) }?.let { return emptyList<SearchedSong>().toResult() }
+            ?: Unit.takeIf { this.contains(songEmptySearch) }
+                ?.let { return persistentListOf<SearchedSong>().toResult() }
             ?: return SongErrors.ParseError.FailedToMatchSongList().toResult()
+
         return itemsFilter.findAll(main).map { match ->
             val (songId, songName, _, authorName) = match.destructured
             SearchedSong(
@@ -79,7 +75,7 @@ class ZpevnikSAkordyByNameDataSourceImpl(
                 SongType.UNKNOWN,
                 "http://zpevnik.wz.cz/index.php?id=$songId"
             )
-        }.toList().sortedWith(comparator).toResult()
+        }.toImmutableList().toResult()
     }
 
     private fun HttpRequestBuilder.setupUrl(name: String? = null, text: String? = null, author: String? = null) {

@@ -2,16 +2,15 @@ package cz.lastaapps.common.song.data.zpevniksakordy
 
 import cz.lastaapps.common.base.asSuccess
 import cz.lastaapps.common.base.util.songBookHttpClient
+import cz.lastaapps.common.song.domain.model.SongType
 import cz.lastaapps.common.song.domain.model.search.SearchedSong
-import cz.lastaapps.common.song.domain.model.search.SongType
-import cz.lastaapps.common.song.util.SearchedSongComparator
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.string.shouldNotBeBlank
 
-class ZpevnikSAkordyDataSourceImplTest : StringSpec({
-    val source = ZpevnikSAkordyByNameDataSourceImpl(songBookHttpClient, SearchedSongComparator.default)
+class ZpevnikSAkordyDataSourceTest : StringSpec({
+    val source = ZpevnikSAkordyByNameDataSourceImpl(songBookHttpClient)
 
     "searchByName" {
         val res = source.searchByName("Hrobař").asSuccess().data.results
