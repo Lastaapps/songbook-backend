@@ -1,7 +1,8 @@
-package cz.lastaapps.common.song.data.zpevniksakordy
+package cz.lastaapps.common.song.data
 
 import cz.lastaapps.common.base.asSuccess
 import cz.lastaapps.common.base.util.songBookHttpClient
+import cz.lastaapps.common.song.data.zpevniksakordy.ZpevnikSAkordyByNameDataSourceImpl
 import cz.lastaapps.common.song.domain.model.SongType
 import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import io.kotest.core.spec.style.StringSpec
@@ -53,9 +54,9 @@ class ZpevnikSAkordyDataSourceTest : StringSpec({
     }
 
     "loadSongs" {
-        source.loadSong(SearchedSong("", "", null, SongType.UNKNOWN, "http://zpevnik.wz.cz/index.php?id=3151"))
+        source.loadSong(SearchedSong("", "", "", SongType.UNKNOWN, "http://zpevnik.wz.cz/index.php?id=3151"))
             .asSuccess().data.text.shouldNotBeBlank()
-        source.loadSong(SearchedSong("", "", null, SongType.UNKNOWN, "http://zpevnik.wz.cz/index.php?id=132586"))
+        source.loadSong(SearchedSong("", "", "", SongType.UNKNOWN, "http://zpevnik.wz.cz/index.php?id=132586"))
             .asSuccess().data.text.shouldNotBeBlank()
     }
 })

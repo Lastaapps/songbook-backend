@@ -71,7 +71,7 @@ class ZpevnikSAkordyByNameDataSourceImpl(
             SearchedSong(
                 songId,
                 songName,
-                authorName.takeIf { it.isNotBlank() },
+                authorName,
                 SongType.UNKNOWN,
                 "http://zpevnik.wz.cz/index.php?id=$songId"
             )

@@ -1,7 +1,8 @@
-package cz.lastaapps.common.song.data.agama
+package cz.lastaapps.common.song.data
 
 import cz.lastaapps.common.base.asSuccess
 import cz.lastaapps.common.base.util.songBookHttpClient
+import cz.lastaapps.common.song.data.agama.AgamaDataSourceImpl
 import cz.lastaapps.common.song.domain.model.SongType
 import cz.lastaapps.common.song.domain.model.search.SearchedSong
 import io.kotest.core.spec.style.StringSpec

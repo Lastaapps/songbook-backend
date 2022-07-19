@@ -37,18 +37,21 @@ class PisnickyAkordyByNameDataSourceImpl(
     private val regexOptions = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
 
     override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
-        val noAccent = client.get { setupUrl(query, true, name = true) }
-            .also { log.i { "Requesting ${it.request.url}" } }
-        val accent = client.get { setupUrl(query, false, name = true) }
-            .also { log.i { "Requesting ${it.request.url}" } }
+        val noAccent =
+            client.get { setupUrl(query, true, name = true) }
+                .also { log.i { "Requesting ${it.request.url}" } }
+        val accent = if (query != query.removeAccents())
+            client.get { setupUrl(query, false, name = true) }
+                .also { log.i { "Requesting ${it.request.url}" } }
+        else null
 
-        val songs = listOf(noAccent, accent).map { response ->
+        val songs = listOfNotNull(noAccent, accent).map { response ->
             try {
                 response.body<List<PisnickyAkordySearchedItemDto>>()
             } catch (e: Exception) {
                 log.e(e) { "Failed to deserialize searched items" }
                 return SongErrors.ParseError.FailedToMatchSongList(e).toResult()
-            }.map { with(it) { SearchedSong(id, name, author, SongType.UNKNOWN, linkForId(link)) } }
+            }.map { with(it) { SearchedSong(id, name, author!!, SongType.UNKNOWN, linkForId(link)) } }
         }.flatten().toSet().toImmutableList()
 
         return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.NAME, songs).toResult()

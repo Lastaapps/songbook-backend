@@ -1,6 +1,7 @@
 package cz.lastaapps.common.base.util
 
 import io.ktor.client.*
+import io.ktor.client.plugins.cache.*
 import io.ktor.client.plugins.compression.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
@@ -17,4 +18,7 @@ val songBookHttpClient
                 ignoreUnknownKeys = true
             })
         }
+        // TODO implement proper cache
+        install(HttpCache)
+        expectSuccess = true
     }

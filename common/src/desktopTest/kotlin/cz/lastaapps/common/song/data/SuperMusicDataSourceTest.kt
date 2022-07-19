@@ -1,7 +1,8 @@
-package cz.lastaapps.common.song.data.supermusic
+package cz.lastaapps.common.song.data
 
 import cz.lastaapps.common.base.asSuccess
 import cz.lastaapps.common.base.util.songBookHttpClient
+import cz.lastaapps.common.song.data.supermusic.SuperMusicByNameDataSourceImpl
 import cz.lastaapps.common.song.domain.model.Author
 import cz.lastaapps.common.song.domain.model.SongType
 import cz.lastaapps.common.song.domain.model.search.SearchedSong

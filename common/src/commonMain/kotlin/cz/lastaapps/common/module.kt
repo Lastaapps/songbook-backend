@@ -3,6 +3,7 @@ package cz.lastaapps.common
 import cz.lastaapps.common.base.util.LocalizedComparatorProvider
 import cz.lastaapps.common.base.util.songBookHttpClient
 import cz.lastaapps.common.song.data.agama.AgamaDataSourceImpl
+import cz.lastaapps.common.song.data.brnkni.BrnkniDataSourceImpl
 import cz.lastaapps.common.song.data.pisnickyakordy.PisnickyAkordyByNameDataSourceImpl
 import cz.lastaapps.common.song.data.supermusic.SuperMusicByNameDataSourceImpl
 import cz.lastaapps.common.song.data.velkyzpevnik.VelkyZpevnikDataSourceImpl
@@ -25,6 +26,7 @@ val module = DI.Module {
     }
 
     bindProvider<AgamaDataSource> { AgamaDataSourceImpl(instance()) }
+    bindProvider<BrnkniDataSource> { BrnkniDataSourceImpl(instance()) }
     bindProvider<PisnickyAkordyByNameDataSource> { PisnickyAkordyByNameDataSourceImpl(instance()) }
     bindProvider<SuperMusicByNameDataSource> { SuperMusicByNameDataSourceImpl(instance()) }
     bindProvider<VelkyZpevnikDataSource> { VelkyZpevnikDataSourceImpl(instance()) }

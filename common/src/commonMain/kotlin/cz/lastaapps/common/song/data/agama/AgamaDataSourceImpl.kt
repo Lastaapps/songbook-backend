@@ -101,14 +101,18 @@ class AgamaDataSourceImpl(
     }
 
     private suspend fun doSearchByEverything(query: String): Result<List<AgamaInterpretDto>> {
-        val list1 = client.get {
-            url("http://www.agama2000.com/api/findByText")
-            parameter("text", query)
-        }.also { log.i { "Requesting ${it.request.url}" } }.body<List<AgamaInterpretDto>>()
-        val list2 = client.get {
-            url("http://www.agama2000.com/api/findByText")
-            parameter("text", query.removeAccents())
-        }.also { log.i { "Requesting ${it.request.url}" } }.body<List<AgamaInterpretDto>>()
+        val list1 =
+            client.get {
+                url("http://www.agama2000.com/api/findByText")
+                parameter("text", query)
+            }.also { log.i { "Requesting ${it.request.url}" } }.body<List<AgamaInterpretDto>>()
+
+        val list2 = if (query != query.removeAccents())
+            client.get {
+                url("http://www.agama2000.com/api/findByText")
+                parameter("text", query.removeAccents())
+            }.also { log.i { "Requesting ${it.request.url}" } }.body<List<AgamaInterpretDto>>()
+        else emptyList()
 
         val joined = list1.toMutableList().also { it.addAll(list2) }
         joined.sortBy { it.id }
@@ -146,7 +150,8 @@ class AgamaDataSourceImpl(
         val fetched = client.get {
             url("http://agama2000.com/api/loadDocument")
             parameter("docId", song.id)
-        }.also { log.i { "Requesting ${it.request.url}" } }.body<AgamaSongDetailDto>()
+        }.also { log.i { "Requesting ${it.request.url}" } }.also { log.i { "Headers ${it.headers}" } }
+            .body<AgamaSongDetailDto>()
 
         val ytb = youtubeUrlMatcher.find(fetched.text.lineSequence().lastOrNull() ?: "")?.groupValues?.getOrNull(1)
         val text = (if (ytb == null) fetched.text else fetched.text.replace(ytb, "")).lines().trimLines().joinLines()
