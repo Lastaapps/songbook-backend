@@ -1,9 +1,11 @@
 package cz.lastaapps.common.song.data.supermusic
 
 import cz.lastaapps.common.base.Result
+import cz.lastaapps.common.base.getIfSuccess
 import cz.lastaapps.common.base.toResult
 import cz.lastaapps.common.base.util.bodyAsSafeText
 import cz.lastaapps.common.base.util.removeAccents
+import cz.lastaapps.common.base.util.runCatchingKtor
 import cz.lastaapps.common.song.domain.SearchAuthorDataSource
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Author
@@ -43,9 +45,7 @@ internal class SuperMusicAuthorSearch(
         val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
-        val html = client.get {
-            searchUrl(query)
-        }.also { log.i { "Requesting ${it.request.url}" } }.bodyAsSafeText()
+        val html = searchAuthorsRequest(query).getIfSuccess { return it }
 
         val mainPart = mainFilter.find(html)?.groupValues?.getOrNull(1)
             ?: notFoundRegex.find(html)?.let { return persistentListOf<Author>().toResult() }
@@ -58,11 +58,13 @@ internal class SuperMusicAuthorSearch(
         }.toImmutableList().toResult()
     }
 
-    private fun HttpRequestBuilder.searchUrl(query: String) {
-        url("https://supermusic.cz/najdi.php")
-        parameter("fraza", "on")
-        parameter("hladane", query.removeAccents())
-        parameter("typhladania", "skupina")
+    private suspend fun searchAuthorsRequest(query: String): Result<String> = runCatchingKtor {
+        client.get {
+            url("https://supermusic.cz/najdi.php")
+            parameter("fraza", "on")
+            parameter("hladane", query.removeAccents())
+            parameter("typhladania", "skupina")
+        }.also { log.i { "Requesting ${it.request.url}" } }.bodyAsSafeText().toResult()
     }
 
     private val matchSongList = """Pridať novú pesničku((?>(?!</table>).)*)</table>""".toRegex(regexOption)
@@ -72,8 +74,7 @@ internal class SuperMusicAuthorSearch(
             .toRegex(regexOption)
 
     override suspend fun loadSongsForAuthor(author: Author): Result<OnlineSearchResult> {
-        val html = client.get(author.link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsSafeText()
-
+        val html = loadSongsForAuthorRequest(author.link).getIfSuccess { return it }
         val main = matchSongList.find(html)?.groupValues?.getOrNull(1)
             ?: Unit.takeIf { html.contains(matchNoSongs) }?.let {
                 return OnlineSearchResult(
@@ -99,5 +100,9 @@ internal class SuperMusicAuthorSearch(
         }.toImmutableList()
 
         return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.AUTHOR, songs).toResult()
+    }
+
+    private suspend fun loadSongsForAuthorRequest(link: String) = runCatchingKtor {
+        client.get(link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsSafeText().toResult()
     }
 }

@@ -10,6 +10,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveAtLeastSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldNotBeBlank
 
 internal class SuperMusicDataSourceTest : StringSpec({
@@ -71,12 +72,23 @@ internal class SuperMusicDataSourceTest : StringSpec({
         // tab
         source.loadSong(SearchedSong("", "", "", SongType.UNKNOWN, "https://supermusic.cz/skupina.php?idpiesne=344750"))
             .asSuccess().data.text.shouldNotBeBlank()
+        // video link
+        source.loadSong(
+            SearchedSong(
+                "",
+                "",
+                "",
+                SongType.UNKNOWN,
+                "https://supermusic.cz/skupina.php?idpiesne=1327001"
+            )
+        )
+            .asSuccess().data.videoLink.shouldNotBeNull()
     }
 
-    "just many things to load" {
-        val res = source.searchSongsByAuthor("Michal").asSuccess().data.results
-        res.forEach {
-            source.loadSong(it).asSuccess()
-        }
-    }
+//    "just many things to load" {
+//        val res = source.searchSongsByAuthor("Michal").asSuccess().data.results
+//        res.forEach {
+//            source.loadSong(it).asSuccess()
+//        }
+//    }
 })

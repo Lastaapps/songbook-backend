@@ -18,7 +18,6 @@ class BrnkniDataSourceTest : StringSpec({
         val res = source.searchByName("Když").asSuccess().data.results
         res.shouldNotBeEmpty()
         res.forEach { println("${it.name} - ${it.author} - ${it.type}") }
-        res.take(5).forEach { source.loadSong(it).asSuccess().data.text.shouldNotBeBlank() }
     }
     "searchByNameNonExisting" {
         val res = source.searchByName("asdfmovie").asSuccess().data.results

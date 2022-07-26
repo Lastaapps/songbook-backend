@@ -18,26 +18,22 @@ class ZpevnikSAkordyDataSourceTest : StringSpec({
         res.shouldNotBeEmpty()
         res.forEach {
             println("${it.name} - ${it.author}")
-            println(source.loadSong(it).asSuccess().data.text)
         }
     }
     "searchByNameNotExisting" {
         source.searchByName("asdfmovie").asSuccess().data.results.shouldBeEmpty()
     }
 
-    "searchByText" {
-        val res = source.searchByText("V mládí jsem se učil").asSuccess().data.results
-        res.shouldNotBeEmpty()
-        res.forEach {
-            println("${it.name} - ${it.author}")
-        }
-        res.take(5).forEach {
-            println(source.loadSong(it).asSuccess().data.text)
-        }
-    }
-    "searchByTextNotExisting" {
-        source.searchByText("asdfmovie").asSuccess().data.results.shouldBeEmpty()
-    }
+//    "searchByText" {
+//        val res = source.searchByText("V mládí jsem se učil").asSuccess().data.results
+//        res.shouldNotBeEmpty()
+//        res.forEach {
+//            println("${it.name} - ${it.author}")
+//        }
+//    }
+//    "searchByTextNotExisting" {
+//        source.searchByText("asdfmovie").asSuccess().data.results.shouldBeEmpty()
+//    }
 
     "searchByAuthor" {
         val res = source.searchSongsByAuthor("Kabát").asSuccess().data.results

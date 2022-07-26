@@ -19,7 +19,6 @@ class PisnickyAkordyDataSourceTest : StringSpec({
         res.shouldNotBeEmpty()
         res.forEach {
             println("${it.name} - ${it.author} - ${it.type}")
-            println(source.loadSong(it).asSuccess().data.text)
         }
     }
     "searchByNameNonExisting" {
@@ -30,7 +29,6 @@ class PisnickyAkordyDataSourceTest : StringSpec({
         val res = source.searchSongsByAuthor("Kabát").asSuccess().data.results
         res.shouldNotBeEmpty()
         res.forEach { println("${it.name} - ${it.author} - ${it.type}") }
-        res.take(5).forEach { println(source.loadSong(it).asSuccess().data.text) }
     }
     "searchByAuthorNonExisting" {
         source.searchSongsByAuthor("asdfmovie").asSuccess().data.results.shouldBeEmpty()
@@ -46,12 +44,12 @@ class PisnickyAkordyDataSourceTest : StringSpec({
             .asSuccess().data.text.shouldBeEmpty()
     }
 
-    "largeData" {
-        val res = source.searchSongsByAuthor("Kabát").asSuccess().data.results
-        res.shouldNotBeEmpty()
-        res.forEach {
-            println("${it.name} - ${it.author} - ${it.type}")
-            println(source.loadSong(it).asSuccess().data.text)
-        }
-    }
+//    "largeData" {
+//        val res = source.searchSongsByAuthor("Kabát").asSuccess().data.results
+//        res.shouldNotBeEmpty()
+//        res.forEach {
+//            println("${it.name} - ${it.author} - ${it.type}")
+//            println(source.loadSong(it).asSuccess().data.text)
+//        }
+//    }
 })

@@ -7,18 +7,23 @@ import cz.lastaapps.common.song.domain.model.search.OnlineSearchResult
 import cz.lastaapps.common.song.domain.model.search.OnlineSource
 import cz.lastaapps.common.song.domain.model.search.SearchType
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 internal class AuthorSearchCombine(private val authorSource: SearchAuthorDataSource) : SearchSongByAuthorDataSource {
     override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> {
-        val interpreters = authorSource.searchAuthors(query)
-        if (interpreters.isError()) return interpreters.casted()
+        val interpreters = authorSource.searchAuthors(query).getIfSuccess { return it }
 
-        val songs = interpreters.asSuccess().data.filter { it.songNumber != 0 }.map {
-            val res = authorSource.loadSongsForAuthor(it)
-            if (res.isError()) return res.casted()
-            res.asSuccess().data.results
-        }.flatten().toImmutableList()
+        return coroutineScope {
+            val songs = interpreters.filter { it.songNumber != 0 }.map {
+                async { authorSource.loadSongsForAuthor(it) }
+            }.awaitAll().map { res ->
+                if (res.isError()) return@coroutineScope res.casted()
+                res.asSuccess().data.results
+            }.flatten().toImmutableList()
 
-        return OnlineSearchResult(OnlineSource.SuperMusic, SearchType.AUTHOR, songs).toResult()
+            OnlineSearchResult(OnlineSource.SuperMusic, SearchType.AUTHOR, songs).toResult()
+        }
     }
 }

@@ -9,6 +9,7 @@ version = App.VERSION_NAME
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    systemProperties["kotest.framework.parallelism"] = 4
 }
 
 kotlin {
@@ -30,6 +31,7 @@ kotlin {
         }
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()
+            systemProperties["kotest.framework.parallelism"] = 4
         }
     }
     sourceSets {

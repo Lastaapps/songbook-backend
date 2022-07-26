@@ -9,9 +9,6 @@ import kotlinx.serialization.json.Json
 
 val songBookHttpClient
     get() = HttpClient {
-        engine {
-            threadsCount = 4
-        }
         install(ContentEncoding)
         install(ContentNegotiation) {
             json(Json {

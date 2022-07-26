@@ -1,11 +1,11 @@
 package cz.lastaapps.common.song.data.supermusic
 
 import cz.lastaapps.common.base.Result
-import cz.lastaapps.common.base.casted
-import cz.lastaapps.common.base.get
+import cz.lastaapps.common.base.getIfSuccess
 import cz.lastaapps.common.base.toResult
 import cz.lastaapps.common.base.util.bodyAsSafeText
 import cz.lastaapps.common.base.util.removeAccents
+import cz.lastaapps.common.base.util.runCatchingKtor
 import cz.lastaapps.common.song.domain.SearchSongByNameDataSource
 import cz.lastaapps.common.song.domain.SearchSongByTextDataSource
 import cz.lastaapps.common.song.domain.SongErrors
@@ -33,35 +33,29 @@ internal class SuperMusicSongSearchByName(
         val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
-        val response = client.get {
-            searchUrl(query, true)
-        }.also { log.i { "Requesting ${it.request.url}" } }
+        val response = commonRequest(query, true).getIfSuccess { return it }
 
-        val data = response.parse()
-        return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusic, SearchType.NAME, it).toResult()
-        } ?: data.casted()
+        val data = response.parse().getIfSuccess { return it }
+        return OnlineSearchResult(OnlineSource.SuperMusic, SearchType.NAME, data).toResult()
     }
 
     override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
         val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
-        val response = client.get {
-            searchUrl(query, false)
-        }.also { log.i { "Requesting ${it.request.url}" } }
+        val response = commonRequest(query, false).getIfSuccess { return it }
 
-        val data = response.parse()
-        return data.get()?.let {
-            OnlineSearchResult(OnlineSource.SuperMusic, SearchType.TEXT, it).toResult()
-        } ?: data.casted()
+        val data = response.parse().getIfSuccess { return it }
+        return OnlineSearchResult(OnlineSource.SuperMusic, SearchType.TEXT, data).toResult()
     }
 
-    private fun HttpRequestBuilder.searchUrl(query: String, isName: Boolean) {
-        url("https://supermusic.cz/najdi.php")
-        parameter("fraza", "on")
-        parameter("hladane", query.removeAccents())
-        parameter("typhladania", if (isName) "piesen" else "textpiesen")
+    private suspend fun commonRequest(query: String, isName: Boolean): Result<HttpResponse> = runCatchingKtor {
+        client.get {
+            url("https://supermusic.cz/najdi.php")
+            parameter("fraza", "on")
+            parameter("hladane", query.removeAccents())
+            parameter("typhladania", if (isName) "piesen" else "textpiesen")
+        }.also { log.i { "Requesting ${it.request.url}" } }.toResult()
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)

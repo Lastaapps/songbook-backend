@@ -1,9 +1,11 @@
 package cz.lastaapps.common.song.data.pisnickyakordy
 
 import cz.lastaapps.common.base.Result
+import cz.lastaapps.common.base.getIfSuccess
 import cz.lastaapps.common.base.toResult
 import cz.lastaapps.common.base.util.joinLines
 import cz.lastaapps.common.base.util.removeAccents
+import cz.lastaapps.common.base.util.runCatchingKtor
 import cz.lastaapps.common.base.util.trimLines
 import cz.lastaapps.common.song.data.AuthorSearchCombine
 import cz.lastaapps.common.song.data.pisnickyakordy.model.PisnickyAkordySearchedItemDto
@@ -22,6 +24,9 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import org.lighthousegames.logging.logging
 
 class PisnickyAkordyByNameDataSourceImpl(
@@ -37,37 +42,57 @@ class PisnickyAkordyByNameDataSourceImpl(
     private val regexOptions = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
 
     override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
-        val noAccent =
-            client.get { setupUrl(query, true, name = true) }
-                .also { log.i { "Requesting ${it.request.url}" } }
-        val accent = if (query != query.removeAccents())
-            client.get { setupUrl(query, false, name = true) }
-                .also { log.i { "Requesting ${it.request.url}" } }
-        else null
-
-        val songs = listOfNotNull(noAccent, accent).map { response ->
-            try {
-                response.body<List<PisnickyAkordySearchedItemDto>>()
-            } catch (e: Exception) {
-                log.e(e) { "Failed to deserialize searched items" }
-                return SongErrors.ParseError.FailedToMatchSongList(e).toResult()
-            }.map { with(it) { SearchedSong(id, name, author!!, SongType.UNKNOWN, linkForId(link)) } }
-        }.flatten().toSet().toImmutableList()
+        val songs = makeSearchRequest(query, name = true)
+            .getIfSuccess { return it }.let { list ->
+                coroutineScope {
+                    list.map {
+                        async {
+                            it.body<List<PisnickyAkordySearchedItemDto>>().map {
+                                with(it) { SearchedSong(id, name, author!!, SongType.UNKNOWN, linkForId(link)) }
+                            }
+                        }
+                    }.awaitAll()
+                }
+            }.flatten().toSet().toImmutableList()
 
         return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.NAME, songs).toResult()
     }
 
-    override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> {
-        val noAccent = client.get { setupUrl(query, true, author = true) }
-        val accent = client.get { setupUrl(query, false, author = true) }
+    override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> =
+        makeSearchRequest(query, author = true)
+            .getIfSuccess { return it }
+            .map { response ->
+                runCatching { response.body<List<PisnickyAkordySearchedItemDto>>() }.getOrElse {
+                    return SongErrors.ParseError.FailedToMatchSongList(it).toResult()
+                }.map { with(it) { Author(id, name, null, linkForId(link)) } }
+            }.flatten().toSet().toImmutableList().toResult()
 
-        return listOf(noAccent, accent).map { response ->
-            try {
-                response.body<List<PisnickyAkordySearchedItemDto>>()
-            } catch (e: Exception) {
-                return SongErrors.ParseError.FailedToMatchSongList(e).toResult()
-            }.map { with(it) { Author(id, name, null, linkForId(link)) } }
-        }.flatten().toSet().toImmutableList().toResult()
+    private suspend fun makeSearchRequest(
+        query: String, name: Boolean = false, author: Boolean = false, album: Boolean = false,
+    ): Result<List<HttpResponse>> = coroutineScope {
+        runCatchingKtor {
+            listOfNotNull(query, query.removeAccents().takeIf { it != query }).map {
+                async {
+                    client.get { setupUrl(it, name, author, album) }
+                        .also { log.i { "Requesting ${it.request.url}" } }
+                }
+            }.awaitAll().toResult()
+        }
+    }
+
+    private fun HttpRequestBuilder.setupUrl(
+        query: String, name: Boolean = false, author: Boolean = false, album: Boolean = false,
+    ) {
+        url("https://pisnicky-akordy.cz/index.php")
+        parameter("option", "com_lyrics")
+        parameter("task", "ajax.display")
+        parameter("format", "json")
+        parameter("tmpl", "component")
+        parameter("q", query)
+        parameter("interpreters", author)
+        parameter("songs", name)
+        parameter("albums", album)
+        parameter("limit", 128)
     }
 
     private val authorSongListMatcher =
@@ -78,7 +103,7 @@ class PisnickyAkordyByNameDataSourceImpl(
             .toRegex(regexOptions)
 
     override suspend fun loadSongsForAuthor(author: Author): Result<OnlineSearchResult> {
-        val html = client.get(author.link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsText()
+        val html = loadSongsForAuthorRequest(author.link).getIfSuccess { return it }
         val match = authorSongListMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchInterpreterSongList().toResult()
 
@@ -95,27 +120,15 @@ class PisnickyAkordyByNameDataSourceImpl(
         return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.AUTHOR, songs).toResult()
     }
 
-    private fun HttpRequestBuilder.setupUrl(
-        query: String, stripAccent: Boolean,
-        name: Boolean = false, author: Boolean = false, album: Boolean = false,
-    ) {
-        url("https://pisnicky-akordy.cz/index.php")
-        parameter("option", "com_lyrics")
-        parameter("task", "ajax.display")
-        parameter("format", "json")
-        parameter("tmpl", "component")
-        parameter("q", if (stripAccent) query.removeAccents() else query)
-        parameter("interpreters", author)
-        parameter("songs", name)
-        parameter("albums", album)
-        parameter("limit", 128)
+    private suspend fun loadSongsForAuthorRequest(link: String): Result<String> = runCatchingKtor {
+        client.get(link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsText().toResult()
     }
 
     private val songTextMatcher =
         """<div[^<>]* id="songtext"[^<>]*>[^<>]*<pre[^<>]*>((?>(?!</pre).)*)</pre>[^<>]*</div>""".toRegex(regexOptions)
 
     override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val html = client.get(song.link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsText()
+        val html = loadSongRequest(song.link).getIfSuccess { return it }
         val songText = (songTextMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchSongList().toResult())
             .replace("<el[^<>]*>".toRegex(), "")
@@ -125,6 +138,10 @@ class PisnickyAkordyByNameDataSourceImpl(
             .lines().trimLines().joinLines()
 
         return with(song) { Song(id, name, author, songText, OnlineSource.PisnickyAkordy, link, null) }.toResult()
+    }
+
+    private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {
+        client.get(link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsText().toResult()
     }
 
     override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> =

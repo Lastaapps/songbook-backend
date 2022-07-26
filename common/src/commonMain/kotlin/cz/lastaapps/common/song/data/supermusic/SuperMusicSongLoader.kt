@@ -1,11 +1,9 @@
 package cz.lastaapps.common.song.data.supermusic
 
 import cz.lastaapps.common.base.Result
+import cz.lastaapps.common.base.getIfSuccess
 import cz.lastaapps.common.base.toResult
-import cz.lastaapps.common.base.util.bodyAsSafeText
-import cz.lastaapps.common.base.util.dropToMuchLines
-import cz.lastaapps.common.base.util.joinLines
-import cz.lastaapps.common.base.util.trimLines
+import cz.lastaapps.common.base.util.*
 import cz.lastaapps.common.song.domain.LoadSongDataSource
 import cz.lastaapps.common.song.domain.SongErrors
 import cz.lastaapps.common.song.domain.model.Song
@@ -30,17 +28,22 @@ internal class SuperMusicSongLoader(
             .toRegex(regexOption)
     private val songTabPattern =
         """<font color=black><pre><pre>((?>(?!</pre).)*)</pre></pre></font>""".toRegex(regexOption)
-    private val songMelodyPattern =
+    private val songMelodyAndTextPattern =
         """<font color=black>((?>(?!</font).)*)</font""".toRegex(regexOption)
+    private val youtubePattern =
+        """(https://www\.youtube\.com/embed/\w+)""".toRegex()
 
     override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val html = client.get(song.link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsSafeText()
+        val html = loadSongRequest(song.link).getIfSuccess { return it }
+
+        val youtube = youtubePattern.find(html)?.groupValues?.getOrNull(1)?.replace("embed/", "")
 
         return (null
             ?: songChordsPattern.find(html)?.groupValues?.get(0 + 1)
             ?: songTabPattern.find(html)?.groupValues?.get(0 + 1)
-            ?: songMelodyPattern.find(html)?.groupValues?.get(0 + 1)
-                )?.let {
+            ?: songMelodyAndTextPattern.find(html)?.groupValues?.get(0 + 1)
+                )
+            ?.let {
                 val text = it
                     .replace("<sup>", "")
                     .replace("</sup>", "")
@@ -54,8 +57,12 @@ internal class SuperMusicSongLoader(
                     .dropToMuchLines()
                     .joinLines()
                 with(song) {
-                    Song(id, name, author, text, OnlineSource.SuperMusic, link, null)
+                    Song(id, name, author, text, OnlineSource.SuperMusic, link, youtube)
                 }
             }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()
+    }
+
+    private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {
+        client.get(link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsSafeText().toResult()
     }
 }
