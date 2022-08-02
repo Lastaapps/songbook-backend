@@ -34,15 +34,43 @@ object Dependency {
 
     object Ktor {
         private const val version = "2.0.3"
-        const val core = "io.ktor:ktor-client-core:$version"
-        const val contentNegotiation = "io.ktor:ktor-client-content-negotiation:$version"
-        const val serialization = "io.ktor:ktor-serialization-kotlinx-json:$version"
-        const val auth = "io.ktor:ktor-client-auth:$version"
-        const val encoding = "io.ktor:ktor-client-encoding:$version"
-        const val logging = "io.ktor:ktor-client-logging:$version"
 
-        const val cio = "io.ktor:ktor-client-cio:$version"
-        const val okhttp = "io.ktor:ktor-client-okhttp:$version"
+        object Client {
+            const val core = "io.ktor:ktor-client-core:$version"
+            const val contentNegotiation = "io.ktor:ktor-client-content-negotiation:$version"
+            const val serialization = "io.ktor:ktor-serialization-kotlinx-json:$version"
+            const val auth = "io.ktor:ktor-client-auth:$version"
+            const val encoding = "io.ktor:ktor-client-encoding:$version"
+            const val logging = "io.ktor:ktor-client-logging:$version"
+
+            const val cio = "io.ktor:ktor-client-cio:$version"
+            const val okhttp = "io.ktor:ktor-client-okhttp:$version"
+        }
+        object Server {
+            const val core = "io.ktor:ktor-server-core:$version"
+
+            const val auth = "io.ktor:ktor-server-auth:$version"
+            const val autoHeadResponse = "io.ktor:ktor-server-auto-head-response:$version"
+            const val caching = "io.ktor:ktor-server-caching-headers:$version"
+            const val callLogging = "io.ktor:ktor-server-call-logging:$version"
+            const val compression = "io.ktor:ktor-server-compression:$version"
+            const val conditionalsHeaders = "io.ktor:ktor-server-conditional-headers:$version"
+            const val contentNegotiation = "io.ktor:ktor-server-content-negotiation:$version"
+            const val defaultHeaders = "io.ktor:ktor-server-default-headers:$version"
+            const val forwardedHeaders = "io.ktor:ktor-server-forwarded-header:$version"
+            const val httpRedirect = "io.ktor:ktor-server-http-redirect:$version"
+            const val jsonSerialization = "io.ktor:ktor-serialization-kotlinx-json:$version"
+            const val partialContent = "io.ktor:ktor-server-partial-content:$version"
+            const val sesstions = "io.ktor:ktor-server-sessions:$version"
+            const val statusPages = "io.ktor:ktor-server-status-pages:$version"
+
+            const val netty = "io.ktor:ktor-server-netty:$version"
+            const val cio = "io.ktor:ktor-server-cio:$version"
+
+            object Unofficial {
+                const val apiKeyAuth = "dev.forst:ktor-api-key:1.1.0"
+            }
+        }
     }
 
     object AndroidX {
@@ -227,6 +255,21 @@ object Dependency {
         const val androidxViewmodeSavedstate =
             "org.kodein.di:kodein-di-framework-android-x-viewmodel-savedstate:$version"
         const val compose = "org.kodein.di:kodein-di-framework-compose:$version"
+    }
+
+    object Koin {
+        private const val version = "3.2.0"
+
+        const val core = "io.insert-koin:koin-core:$version"
+
+        const val annotations = "io.insert-koin:koin-annotations:$version"
+        const val compiler = "io.insert-koin:koin-ksp-compiler:$version"
+
+        const val android = "io.insert-koin:koin-android:$version"
+        const val ktorServer = "io.insert-koin:koin-ktor:$version"
+
+        const val test = "io.insert-koin:koin-test:$version"
+        const val testJUnit = "io.insert-koin:koin-test-junit4:$version"
     }
 
     object AboutLibraries {

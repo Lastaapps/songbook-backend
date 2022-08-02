@@ -20,7 +20,13 @@ object Plugins {
 
     const val ksp = "com.google.devtools.ksp"
     const val kapt = "kotlin-kapt"
+
     const val maven = "maven-publish"
+
+    object Shadow {
+        const val version = "7.1.2"
+        const val plugin = "com.github.johnrengelman.shadow"
+    }
 
     const val sqldelight = "com.squareup.sqldelight"
     const val aboutLibraries = "com.mikepenz.aboutlibraries.plugin"

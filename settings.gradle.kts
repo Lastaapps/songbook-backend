@@ -13,9 +13,9 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Songbook"
-//include(
-//    ":app",
-//)
+
 include(
-    ":common",
+    ":backend:app",
+    ":backend:base",
+    ":backend:feature:song",
 )

@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="BE [LOCALHOST]" type="JetRunConfigurationType">
+    <envs>
+      <env name="DOMAIN" value="localhost" />
+      <env name="PORT" value="8080" />
+      <env name="ENV" value="dev" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="cz.lastaapps.app.MainKt" />
+    <module name="Songbook.backend.app.main" />
+    <option name="PROGRAM_PARAMETERS" value="-config=../application.conf" />
+    <shortenClasspath name="NONE" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend/work_dir" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
