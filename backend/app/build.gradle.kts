@@ -1,6 +1,7 @@
 plugins {
     application
     id(Plugins.Kotlin.jvm)
+    id(Plugins.Kotlin.serialization)
     id(Plugins.Java.kotlin)
     id(Plugins.Shadow.plugin) version Plugins.Shadow.version
 }

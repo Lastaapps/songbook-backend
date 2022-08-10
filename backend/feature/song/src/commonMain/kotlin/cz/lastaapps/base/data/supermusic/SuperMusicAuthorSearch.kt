@@ -5,9 +5,6 @@ import cz.lastaapps.base.domain.SearchAuthorDataSource
 import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.Author
 import cz.lastaapps.base.domain.model.SongType
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
-import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchType
 import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.getIfSuccess
 import cz.lastaapps.base.toResult
@@ -73,17 +70,15 @@ internal class SuperMusicAuthorSearch(
         """<img[^<>]*src="images/(\S+)\.gif"(?>(?!<a).)*<a[^<>]*href="skupina\.php\?idpiesne=(\d+)[^"]*"[^<>]*>([^<]+)<(?>(?!</a>).)*</a>"""
             .toRegex(regexOption)
 
-    override suspend fun loadSongsForAuthor(author: Author): Result<OnlineSearchResult> {
+    override suspend fun loadSongsForAuthor(author: Author): Result<ImmutableList<SearchedSong>> {
         val html = loadSongsForAuthorRequest(author.link).getIfSuccess { return it }
         val main = matchSongList.find(html)?.groupValues?.getOrNull(1)
             ?: Unit.takeIf { html.contains(matchNoSongs) }?.let {
-                return OnlineSearchResult(
-                    OnlineSource.PisnickyAkordy, SearchType.AUTHOR, persistentListOf(),
-                ).toResult()
+                return persistentListOf<SearchedSong>().toResult()
             }
             ?: return SongErrors.ParseError.FailedToMatchInterpreterSongList().toResult()
 
-        val songs = matchSongDetail.findAll(main).map {
+        return matchSongDetail.findAll(main).map {
             val (type, id, name) = it.destructured
 
             // Order is important, song with "akordy a texty" should be matched as CHORDS, but would also match TEXT
@@ -96,10 +91,8 @@ internal class SuperMusicAuthorSearch(
                 else -> SongType.UNKNOWN
             }
 
-            SearchedSong(id, name, author.name, mainStyle, "https://supermusic.cz/skupina.php?idpiesne=$id")
-        }.toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.AUTHOR, songs).toResult()
+            SearchedSong(id, name, author.name, mainStyle)
+        }.toImmutableList().toResult()
     }
 
     private suspend fun loadSongsForAuthorRequest(link: String) = runCatchingKtor {

@@ -6,9 +6,8 @@ import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.Author
 import cz.lastaapps.base.domain.model.Song
 import cz.lastaapps.base.domain.model.SongType
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
 import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchType
+
 import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.domain.sources.PisnickyAkordyByNameDataSource
 import cz.lastaapps.base.getIfSuccess
@@ -35,26 +34,24 @@ class PisnickyAkordyByNameDataSourceImpl(
     companion object {
         private val log = logging()
 
-        fun linkForId(id: String) = "https://pisnicky-akordy.cz$id"
+        fun pisnickyAkordyId(id: String) = "https://pisnicky-akordy.cz$id"
     }
 
     private val regexOptions = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
 
-    override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
-        val songs = makeSearchRequest(query, name = true)
+    override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> {
+        return makeSearchRequest(query, name = true)
             .getIfSuccess { return it }.let { list ->
                 coroutineScope {
                     list.map {
                         async {
                             it.body<List<PisnickyAkordySearchedItemDto>>().map {
-                                with(it) { SearchedSong(id, name, author!!, SongType.UNKNOWN, linkForId(link)) }
+                                with(it) { SearchedSong(id, name, author!!, SongType.UNKNOWN) }
                             }
                         }
                     }.awaitAll()
                 }
-            }.flatten().toSet().toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.NAME, songs).toResult()
+            }.flatten().toSet().toImmutableList().toResult()
     }
 
     override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> =
@@ -63,7 +60,7 @@ class PisnickyAkordyByNameDataSourceImpl(
             .map { response ->
                 runCatching { response.body<List<PisnickyAkordySearchedItemDto>>() }.getOrElse {
                     return SongErrors.ParseError.FailedToMatchSongList(it).toResult()
-                }.map { with(it) { Author(id, name, null, linkForId(link)) } }
+                }.map { with(it) { Author(id, name, null, pisnickyAkordyId(link)) } }
             }.flatten().toSet().toImmutableList().toResult()
 
     private suspend fun makeSearchRequest(
@@ -101,22 +98,20 @@ class PisnickyAkordyByNameDataSourceImpl(
         """<li[^<>]*>(?>(?!<a).)*<a[^<>]*href="((?>(?!").)+)"[^<>]*>(?>(?!<i).)*<i[^<>]*class='((?>(?!').)+)'[^<>]*>(?>(?!<span).)*<span[^<>]*>((?>(?!</span).)*)</span>"""
             .toRegex(regexOptions)
 
-    override suspend fun loadSongsForAuthor(author: Author): Result<OnlineSearchResult> {
+    override suspend fun loadSongsForAuthor(author: Author): Result<ImmutableList<SearchedSong>> {
         val html = loadSongsForAuthorRequest(author.link).getIfSuccess { return it }
         val match = authorSongListMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchInterpreterSongList().toResult()
 
-        val songs = authorEachSongMather.findAll(match).map {
+        return authorEachSongMather.findAll(match).map {
             val (link, type, name) = it.destructured
             val foundType = when {
                 type.contains("glyphicon-music") -> SongType.CHORDS
                 type.contains("glyphicon-") -> return@map null // work in progress songs
                 else -> SongType.TEXT
             }
-            SearchedSong(link, name.trim(), author.name, foundType, linkForId(link))
-        }.filterNotNull().toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.PisnickyAkordy, SearchType.AUTHOR, songs).toResult()
+            SearchedSong(link, name.trim(), author.name, foundType)
+        }.filterNotNull().toImmutableList().toResult()
     }
 
     private suspend fun loadSongsForAuthorRequest(link: String): Result<String> = runCatchingKtor {
@@ -125,9 +120,14 @@ class PisnickyAkordyByNameDataSourceImpl(
 
     private val songTextMatcher =
         """<div[^<>]* id="songtext"[^<>]*>[^<>]*<pre[^<>]*>((?>(?!</pre).)*)</pre>[^<>]*</div>""".toRegex(regexOptions)
+    private val songNameMatcher =
+        """<div[^<>]*id="songheader"[^<>]*>[^<>]*<h1>[^<>]*<a[^<>]*>([^<>]*)</a>[^<>]*</h1>(?>(?!<a).)*<a[^<>]*>([^<>]*)</a>"""
+            .toRegex(regexOptions)
 
-    override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val html = loadSongRequest(song.link).getIfSuccess { return it }
+    override suspend fun loadSong(id: String): Result<Song> {
+        val link = pisnickyAkordyId(id)
+        val html = loadSongRequest(link).getIfSuccess { return it }
+
         val songText = (songTextMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchSongList().toResult())
             .replace("<el[^<>]*>".toRegex(), "")
@@ -136,13 +136,16 @@ class PisnickyAkordyByNameDataSourceImpl(
             .replace("</span>".toRegex(), "]")
             .lines().trimLines().joinLines()
 
-        return with(song) { Song(id, name, author, songText, OnlineSource.PisnickyAkordy, link, null) }.toResult()
+        val (name, author) = songNameMatcher.find(html)?.destructured
+            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
+
+        return Song(id, name, author, songText, OnlineSource.PisnickyAkordy, link, null).toResult()
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {
         client.get(link).also { log.i { "Requesting ${it.request.url}" } }.bodyAsText().toResult()
     }
 
-    override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> =
+    override suspend fun searchSongsByAuthor(query: String): Result<ImmutableList<SearchedSong>> =
         cz.lastaapps.base.data.AuthorSearchCombine(this).searchSongsByAuthor(query)
 }

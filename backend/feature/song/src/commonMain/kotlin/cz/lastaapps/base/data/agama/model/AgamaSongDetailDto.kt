@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class AgamaSongDetailDto(
     val name: String,
 //    val xid: String,
-    val id: String,
+//    val id: String,
     val text: String,
 //    val type: String,
     val interprets: List<String>,

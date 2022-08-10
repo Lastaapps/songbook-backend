@@ -1,5 +1,6 @@
 package cz.lastaapps.base
 
+import cz.lastaapps.base.data.agama.AgamaAuthorNameCacheImpl
 import cz.lastaapps.base.data.agama.AgamaDataSourceImpl
 import cz.lastaapps.base.data.brnkni.BrnkniDataSourceImpl
 import cz.lastaapps.base.data.pisnickyakordy.PisnickyAkordyByNameDataSourceImpl
@@ -10,7 +11,7 @@ import cz.lastaapps.base.util.LocalizedComparatorProvider
 import cz.lastaapps.base.util.SearchedSongComparator
 import cz.lastaapps.base.util.songBookHttpClient
 import org.koin.core.module.Module
-import org.koin.core.module.dsl.factoryOf
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 
@@ -24,10 +25,11 @@ val module = module {
         SearchedSongComparator(get<LocalizedComparatorProvider>().createDefault())
     }
 
-    factoryOf(::AgamaDataSourceImpl)
-    factoryOf(::BrnkniDataSourceImpl)
-    factoryOf(::PisnickyAkordyByNameDataSourceImpl)
-    factoryOf(::SuperMusicByNameDataSourceImpl)
-    factoryOf(::VelkyZpevnikDataSourceImpl)
-    factoryOf(::ZpevnikSAkordyByNameDataSourceImpl)
+    singleOf(::AgamaDataSourceImpl)
+    singleOf(::AgamaAuthorNameCacheImpl)
+    singleOf(::BrnkniDataSourceImpl)
+    singleOf(::PisnickyAkordyByNameDataSourceImpl)
+    singleOf(::SuperMusicByNameDataSourceImpl)
+    singleOf(::VelkyZpevnikDataSourceImpl)
+    singleOf(::ZpevnikSAkordyByNameDataSourceImpl)
 }

@@ -4,12 +4,12 @@ import cz.lastaapps.base.*
 import cz.lastaapps.base.data.agama.model.AgamaInterpretDto
 import cz.lastaapps.base.data.agama.model.AgamaPersonDto
 import cz.lastaapps.base.data.agama.model.AgamaSongDetailDto
+import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.Author
 import cz.lastaapps.base.domain.model.Song
 import cz.lastaapps.base.domain.model.SongType
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
 import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchType
+
 import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.domain.sources.AgamaDataSource
 import cz.lastaapps.base.util.joinLines
@@ -32,68 +32,65 @@ import org.lighthousegames.logging.logging
 
 class AgamaDataSourceImpl(
     private val client: HttpClient,
+    private val authorNameCache: AgamaAuthorNameCache,
 ) : AgamaDataSource {
 
     companion object {
         private val log = logging()
-        private fun agamaLink(id: String) = "http://www.agama2000.com/${id.encodeURLParameter()}"
+        private fun agamaAuthorLink(id: String) = "http://www.agama2000.com/${id.encodeURLParameter()}"
+        private fun agamaWebLink(songId: String, songName: String, authorId: String, authorName: String) =
+            "http://www.agama2000.com/${authorId.encodeURLPath()}/${authorName.encodeURLPath()}/${songId.encodeURLPath()}/${songName.encodeURLPath()}"
     }
 
-    override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchSongsByAuthor(query: String): Result<ImmutableList<SearchedSong>> {
         val dtoList = doSearchByEverything(query).getIfSuccess { return it }
 
         val parts = query.removeAccents().split(" ").filter { it.isNotBlank() }
         // get only authors that contain query part in name
         val authors = dtoList.asSequence().filter {
             it.name.removeAccents().let { parts.any { part -> it.contains(part) } }
-        }.map { Author(it.id, it.name, null, agamaLink(it.id)) }
+        }.map { Author(it.id, it.name, null, agamaAuthorLink(it.id)) }
 
-        val songs = persistentListOf<SearchedSong>().mutate { list ->
+        return persistentListOf<SearchedSong>().mutate { list ->
             coroutineScope {
                 authors.map {
                     async {
                         val res = loadSongsForAuthor(it)
                         if (res.isError()) return@async res
-                        list.addAll(res.asSuccess().data.results)
+                        list.addAll(res.asSuccess().data)
                         Unit.toResult()
                     }
                 }.toList().awaitAll()
             }.onEach { res -> res.getIfSuccess { return it } }
-        }
-
-        return OnlineSearchResult(OnlineSource.Agama, SearchType.AUTHOR, songs).toResult()
+        }.toResult()
     }
 
-    override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> {
         val dtoList = doSearchByEverything(query)
         if (dtoList.isError()) return dtoList.casted()
 
         val parts = query.removeAccents().split(" ").filter { it.isNotBlank() }
 
         // get only authors that contain query part in name
-        val songs = dtoList.asSuccess().data.asSequence().map { author ->
+        return dtoList.asSuccess().data.asSequence().map { author ->
             author.songs.map { song ->
-                SearchedSong(song.id, song.name, author.name, SongType.CHORDS, agamaLink(song.id))
+                SearchedSong(song.id, song.name, author.name, SongType.CHORDS)
             }
         }.flatten().filter {
             it.name.removeAccents().let { parts.any { part -> it.contains(part) } }
-        }.toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.Agama, SearchType.NAME, songs).toResult()
+        }.toImmutableList().toResult()
     }
 
-    override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchByText(query: String): Result<ImmutableList<SearchedSong>> {
         val dtoList = doSearchByEverything(query)
         if (dtoList.isError()) return dtoList.casted()
 
         // get only authors that contain query part in name
-        val songs = dtoList.asSuccess().data.asSequence().map { author ->
+        return dtoList.asSuccess().data.asSequence().map { author ->
             author.songs.map { song ->
-                SearchedSong(song.id, song.name, author.name, SongType.CHORDS, agamaLink(song.id))
+                SearchedSong(song.id, song.name, author.name, SongType.CHORDS)
             }
-        }.flatten().toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.Agama, SearchType.NAME, songs).toResult()
+        }.flatten().toImmutableList().toResult()
     }
 
     override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> {
@@ -105,7 +102,7 @@ class AgamaDataSourceImpl(
         return dtoList.asSuccess().data.asSequence().filter {
             it.name.removeAccents().let { parts.any { part -> it.contains(part) } }
         }
-            .map { with(it) { Author(id, name, null, agamaLink(id)) } }.toImmutableList().toResult()
+            .map { with(it) { Author(id, name, null, agamaAuthorLink(id)) } }.toImmutableList().toResult()
     }
 
     private suspend fun doSearchByEverything(query: String): Result<List<AgamaInterpretDto>> {
@@ -139,12 +136,10 @@ class AgamaDataSourceImpl(
         }
     }
 
-    override suspend fun loadSongsForAuthor(author: Author): Result<OnlineSearchResult> {
-        val songs = loadSongForAuthorRequest(author.id).getIfSuccess { return it }.songs.map { song ->
-            SearchedSong(song.id, song.name, author.name, SongType.CHORDS, agamaLink(song.id))
-        }.toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.Agama, SearchType.AUTHOR, songs).toResult()
+    override suspend fun loadSongsForAuthor(author: Author): Result<ImmutableList<SearchedSong>> {
+        return loadSongForAuthorRequest(author.id).getIfSuccess { return it }.songs.map { song ->
+            SearchedSong(song.id, song.name, author.name, SongType.CHORDS)
+        }.toImmutableList().toResult()
     }
 
     private suspend fun loadSongForAuthorRequest(authorId: String): Result<AgamaPersonDto> = runCatchingKtor {
@@ -157,13 +152,26 @@ class AgamaDataSourceImpl(
 
     private val youtubeUrlMatcher = """(https://www\.youtube\.com/watch\?v=.+)$""".toRegex()
 
-    override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val fetched = loadSongRequest(song.id).getIfSuccess { return it }
+    override suspend fun loadSong(id: String): Result<Song> {
+        val fetched = loadSongRequest(id).getIfSuccess { return it }
         val ytb = youtubeUrlMatcher.find(fetched.text.lineSequence().lastOrNull() ?: "")?.groupValues?.getOrNull(1)
         val text = (if (ytb == null) fetched.text else fetched.text.replace(ytb, "")).lines().trimLines().joinLines()
 
-        return with(song) {
-            Song(id, name, song.author, text, OnlineSource.Agama, link, ytb)
+        val author = fetched.interprets.map {
+            when (val res = authorNameCache.getAuthorNameForId(it)) {
+                is Result.Error -> return@loadSong res.casted()
+                is Result.Success -> res.data
+            }
+        }.joinToString(separator = ", ").takeIf { it.isNotBlank() }
+            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
+
+        // already checked
+        val someAuthor =
+            fetched.interprets.first().let { it to authorNameCache.getAuthorNameForId(it).asSuccess().data }
+        val webLink = agamaWebLink(id, fetched.name, someAuthor.first, someAuthor.second)
+
+        return with(fetched) {
+            Song(id, name, author, text, OnlineSource.Agama, webLink, ytb)
         }.toResult()
     }
 
@@ -171,7 +179,7 @@ class AgamaDataSourceImpl(
         client.get {
             url("http://agama2000.com/api/loadDocument")
             parameter("docId", songId)
-        }.also { log.i { "Requesting ${it.request.url}" } }.also { log.i { "Headers ${it.headers}" } }
+        }.also { log.i { "Requesting ${it.request.url}" } }
             .body<AgamaSongDetailDto>().toResult()
     }
 }

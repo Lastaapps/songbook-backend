@@ -5,9 +5,7 @@ import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.Author
 import cz.lastaapps.base.domain.model.Song
 import cz.lastaapps.base.domain.model.SongType
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
 import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchType
 import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.domain.sources.VelkyZpevnikDataSource
 import cz.lastaapps.base.getIfSuccess
@@ -40,18 +38,16 @@ class VelkyZpevnikDataSourceImpl(
         """class="title"[^<>]*href="([^"]*)"[^<>]*>([^<]*)</a>[^<]*<a[^<>]*class="interpret"[^<>]*href="([^"]*)"[^<>]*>([^<]*)</a>"""
             .toRegex(regexOption)
 
-    override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> {
         val html = loadPageForQuery(query).getIfSuccess { return it }
         val main = sectionNameMatcher.find(html)?.groupValues?.getOrNull(1)
-            ?: return OnlineSearchResult(OnlineSource.VelkyZpevnik, SearchType.TEXT, persistentListOf()).toResult()
+            ?: return persistentListOf<SearchedSong>().toResult()
 
         @Suppress("UNUSED_VARIABLE")
-        val songs = sectionNameSongMatcher.findAll(main).map { match ->
+        return sectionNameSongMatcher.findAll(main).map { match ->
             val (songLink, songName, authorLink, authorName) = match.destructured
-            SearchedSong(songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN, velkyZpevnikLink(songLink))
-        }.toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.VelkyZpevnik, SearchType.TEXT, songs).toResult()
+            SearchedSong(songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN)
+        }.toImmutableList().toResult()
     }
 
     private val sectionTextMatcher =
@@ -60,18 +56,16 @@ class VelkyZpevnikDataSourceImpl(
         """class="title"[^<>]*href="([^"]*)"[^<>]*>([^<]*)</a>[^<]*<a[^<>]*class="interpret"[^<>]*href="([^"]*)"[^<>]*>([^<]*)</a>"""
             .toRegex(regexOption)
 
-    override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchByText(query: String): Result<ImmutableList<SearchedSong>> {
         val html = loadPageForQuery(query).getIfSuccess { return it }
         val main = sectionTextMatcher.find(html)?.groupValues?.getOrNull(1)
-            ?: return OnlineSearchResult(OnlineSource.VelkyZpevnik, SearchType.TEXT, persistentListOf()).toResult()
+            ?: return persistentListOf<SearchedSong>().toResult()
 
         @Suppress("UNUSED_VARIABLE")
-        val songs = sectionTextSongMatcher.findAll(main).map { match ->
+        return sectionTextSongMatcher.findAll(main).map { match ->
             val (songLink, songName, authorLink, authorName) = match.destructured
-            SearchedSong(songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN, velkyZpevnikLink(songLink))
-        }.toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.VelkyZpevnik, SearchType.AUTHOR, songs).toResult()
+            SearchedSong(songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN)
+        }.toImmutableList().toResult()
     }
 
     private val sectionAuthorMatcher =
@@ -101,18 +95,16 @@ class VelkyZpevnikDataSourceImpl(
     private val artistsSongsListMatcher =
         """<a[^<>]*href="([^"]+)"[*<>]*>[^<>]*<p[^<>]*class="song-title"[^<>]*>([^<>]*)</p>""".toRegex(regexOption)
 
-    override suspend fun loadSongsForAuthor(author: Author): Result<OnlineSearchResult> {
+    override suspend fun loadSongsForAuthor(author: Author): Result<ImmutableList<SearchedSong>> {
         val html = loadSongsForAuthorRequest(author.link).getIfSuccess { return it }
 
         val main = artistSongsSectionMatcher.find(html)?.groupValues?.getOrNull(1)
-            ?: return OnlineSearchResult(OnlineSource.VelkyZpevnik, SearchType.TEXT, persistentListOf()).toResult()
+            ?: return persistentListOf<SearchedSong>().toResult()
 
-        val songs = artistsSongsListMatcher.findAll(main).map { match ->
+        return artistsSongsListMatcher.findAll(main).map { match ->
             val (link, name) = match.destructured
-            SearchedSong(link, name, author.name, SongType.UNKNOWN, velkyZpevnikLink(link))
-        }.toImmutableList()
-
-        return OnlineSearchResult(OnlineSource.VelkyZpevnik, SearchType.AUTHOR, songs).toResult()
+            SearchedSong(link, name, author.name, SongType.UNKNOWN)
+        }.toImmutableList().toResult()
     }
 
     private suspend fun loadSongsForAuthorRequest(link: String) = runCatchingKtor {
@@ -120,21 +112,29 @@ class VelkyZpevnikDataSourceImpl(
     }
 
     private val combined = cz.lastaapps.base.data.AuthorSearchCombine(this)
-    override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> =
+    override suspend fun searchSongsByAuthor(query: String): Result<ImmutableList<SearchedSong>> =
         combined.searchSongsByAuthor(query)
 
     private val songTextMatcher =
         """<div[^<>]*>[^<>]*<pre[^<>]*>(.*)</pre>[^<>]*</div>""".toRegex(regexOption)
+    private val songNameMatcher =
+        """<article[^<>]*class="song"[^<>]*>[^<>]*<h1[^<>]*>([^<>]*)</h1>[^<>]*<h3>[^<>]*<a[^<>]*title="Detail interpreta"[^<>]*>([^<>]*)</a>"""
+            .toRegex(regexOption)
 
-    override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val html = loadSongRequest(song.link).getIfSuccess { return it }
+    override suspend fun loadSong(id: String): Result<Song> {
+        val link = velkyZpevnikLink(id)
+        val html = loadSongRequest(link).getIfSuccess { return it }
+
         val text = (songTextMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchSongText().toResult())
             .replace("""<span[^<>]*>""".toRegex(), "[")
             .replace("</span>", "]")
             .lines().trimLines().joinLines()
 
-        return Song(song.id, song.name, song.author, text, OnlineSource.VelkyZpevnik, song.link, null).toResult()
+        val (name, author) = (songNameMatcher.find(html)?.destructured
+            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult())
+
+        return Song(id, name, author.trimAuthorName(), text, OnlineSource.VelkyZpevnik, link, null).toResult()
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {

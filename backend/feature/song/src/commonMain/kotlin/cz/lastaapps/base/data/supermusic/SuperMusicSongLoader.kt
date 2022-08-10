@@ -5,7 +5,6 @@ import cz.lastaapps.base.domain.LoadSongDataSource
 import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.Song
 import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.getIfSuccess
 import cz.lastaapps.base.toResult
 import cz.lastaapps.base.util.*
@@ -20,6 +19,7 @@ internal class SuperMusicSongLoader(
 
     companion object {
         private val log = logging()
+        private fun supermusicLink(id: String) = "https://supermusic.cz/skupina.php?idpiesne=$id"
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
@@ -31,12 +31,17 @@ internal class SuperMusicSongLoader(
     private val songMelodyAndTextPattern =
         """<font color=black>((?>(?!</font).)*)</font""".toRegex(regexOption)
     private val youtubePattern =
-        """(https://www\.youtube\.com/embed/\w+)""".toRegex()
+        """(https://www\.youtube\.com/embed/\w+)""".toRegex(regexOption)
+    private val songNamePattern =
+        """<font class="test3">([^-]*)-([^<]*)</font>""".toRegex(regexOption)
 
-    override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val html = loadSongRequest(song.link).getIfSuccess { return it }
+    override suspend fun loadSong(id: String): Result<Song> {
+        val link = supermusicLink(id)
+        val html = loadSongRequest(link).getIfSuccess { return it }
 
         val youtube = youtubePattern.find(html)?.groupValues?.getOrNull(1)?.replace("embed/", "")
+        val (author, name) = songNamePattern.find(html)?.destructured
+            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
 
         return (null
             ?: songChordsPattern.find(html)?.groupValues?.get(0 + 1)
@@ -56,9 +61,8 @@ internal class SuperMusicSongLoader(
                     .trimLines()
                     .dropToMuchLines()
                     .joinLines()
-                with(song) {
-                    Song(id, name, author, text, OnlineSource.SuperMusic, link, youtube)
-                }
+
+                Song(id, name.trim(), author.trim(), text, OnlineSource.SuperMusic, link, youtube)
             }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()
     }
 

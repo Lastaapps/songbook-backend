@@ -68,6 +68,16 @@ http://www.agama2000.com/api/loadSongs?personId=$id
 }
 ```
 
+#### Author name - id mapping
+
+http://www.agama2000.com
+
+```
+"id":"([^"]+)"[^}]+"name":"([^"]+)","used":true
+```
+
+(id, name)
+
 #### Song text
 
 The web page of a song
@@ -153,6 +163,14 @@ types: `Akordy`, `Taby`, `Akordy + taby`
 replace `<span[^<>]*>` → `[`,  `</span>` → `]`
 replace `^<p[^<>]*>` → ` `,  `</p>$` → ` ` (tabs)
 
+##### Song and author name
+
+```
+<div class="title">[^<>]*<h1>([^<>]+)<span>([^<>]*)</span>[^<>]*</h1>[^<>]*<h2><a[^<>]*>([^<>]*)</a>
+```
+
+(name, type, author)
+
 ### Písničky s akordy - pisnicky-akordy.cz
 
 #### Song list
@@ -195,6 +213,12 @@ type (contains, check order is important): `glyphicon-music` → `chords`, `glyp
 
 remove `<el[^<>]*>`, `</el>`
 replace `<span[^<>]*>` →`[`,  `</span>` → `]`
+
+##### Song and author name
+
+```
+<div[^<>]*id="songheader"[^<>]*>[^<>]*<h1>[^<>]*<a[^<>]*>([^<>]*)</a>[^<>]*</h1>(?>(?!<a).)*<a[^<>]*>([^<>]*)</a>
+```
 
 ### Supermusic - supermusic.sk
 
@@ -278,6 +302,14 @@ remove `<sup>`, `</sup>`, `<pre>`, `</pre>`
 
 replace `<a[^<>]*>` → `[`, `<\/a>` → `]`, `<br/>` → `'\n'`
 
+##### Song and author name
+
+```
+<font class="test3">([^-]*)-([^<]*)</font>
+```
+
+(author, name)
+
 ##### YouTube (optional)
 
 ```
@@ -342,6 +374,14 @@ class="title" href="([^"]*)">([^<]*)</a>[^<]*<a[^<>]*class="interpret" href="([^
 
 replace `<span[^<>]*>` → `[`,  `</span>` → `]`
 
+##### Song and author name
+
+```
+<article[^<>]*class="song"[^<>]*>[^<>]*<h1[^<>]*>([^<>]*)</h1>[^<>]*<h3>[^<>]*<a[^<>]*title="Detail interpreta"[^<>]*>([^<>]*)</a>
+```
+
+(name, author)
+
 ### Zpěvník s akordy - zpevnik.wz.cz
 
 #### Search song list
@@ -365,3 +405,18 @@ http://zpevnik.wz.cz/index.php?id=...
 <div[^<>]*class="song"[^<>]*>((?>(?!<\/div>).)*)<\/div>
 ```
 
+##### Song and author name
+
+```
+<h1>([^()]*)\(<a[^<>]*>([^<>]*)</a>[^<>]*\)[^<>]*</h1>[^<>]*<div[^<>]*class="song"[^<>]*>
+```
+
+(name, author)
+
+##### YouTube link
+
+```
+www\.youtube\.com/embed/([a-zA-Z0-9-_]+)
+```
+
+(videoId)

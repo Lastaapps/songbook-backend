@@ -5,9 +5,6 @@ import cz.lastaapps.base.domain.SearchSongByNameDataSource
 import cz.lastaapps.base.domain.SearchSongByTextDataSource
 import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.SongType
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
-import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchType
 import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.getIfSuccess
 import cz.lastaapps.base.toResult
@@ -29,24 +26,22 @@ internal class SuperMusicSongSearchByName(
         private val log = logging()
     }
 
-    override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> {
         val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
         val response = commonRequest(query, true).getIfSuccess { return it }
 
-        val data = response.parse().getIfSuccess { return it }
-        return OnlineSearchResult(OnlineSource.SuperMusic, SearchType.NAME, data).toResult()
+        return response.parse().getIfSuccess { return it }.toResult()
     }
 
-    override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
+    override suspend fun searchByText(query: String): Result<ImmutableList<SearchedSong>> {
         val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
         val response = commonRequest(query, false).getIfSuccess { return it }
 
-        val data = response.parse().getIfSuccess { return it }
-        return OnlineSearchResult(OnlineSource.SuperMusic, SearchType.TEXT, data).toResult()
+        return response.parse().getIfSuccess { return it }.toResult()
     }
 
     private suspend fun commonRequest(query: String, isName: Boolean): Result<HttpResponse> = runCatchingKtor {
@@ -84,7 +79,7 @@ internal class SuperMusicSongSearchByName(
                 else -> SongType.UNKNOWN
             }
 
-            SearchedSong(id, name, author, mainStyle, "https://supermusic.cz/skupina.php?idpiesne=$id")
+            SearchedSong(id, name, author, mainStyle)
         }.toPersistentList().toResult()
     }
 }

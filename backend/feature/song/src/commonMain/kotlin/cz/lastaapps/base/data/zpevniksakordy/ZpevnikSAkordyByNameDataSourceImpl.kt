@@ -4,9 +4,7 @@ import cz.lastaapps.base.Result
 import cz.lastaapps.base.domain.SongErrors
 import cz.lastaapps.base.domain.model.Song
 import cz.lastaapps.base.domain.model.SongType
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
 import cz.lastaapps.base.domain.model.search.OnlineSource
-import cz.lastaapps.base.domain.model.search.SearchType
 import cz.lastaapps.base.domain.model.search.SearchedSong
 import cz.lastaapps.base.domain.sources.ZpevnikSAkordyByNameDataSource
 import cz.lastaapps.base.getIfSuccess
@@ -28,27 +26,21 @@ class ZpevnikSAkordyByNameDataSourceImpl(
 
     companion object {
         private val log = logging()
+
+        private fun zpevnikSAkordyLink(id: String) = "http://zpevnik.wz.cz/index.php?id=$id"
     }
 
-    override suspend fun searchByName(query: String): Result<OnlineSearchResult> {
-        val songs = commonRequest(name = query).getIfSuccess { return it }.parseSongList().getIfSuccess { return it }
-        return OnlineSearchResult(OnlineSource.ZpevnikSAkordy, SearchType.NAME, songs).toResult()
-    }
+    override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> =
+        commonRequest(name = query).getIfSuccess { return it }.parseSongList().getIfSuccess { return it }.toResult()
 
-//    override suspend fun searchByText(query: String): Result<OnlineSearchResult> {
-//        val songs = commonRequest(text = query).getIfSuccess { return it }.parseSongList().getIfSuccess { return it }
-//        return OnlineSearchResult(OnlineSource.ZpevnikSAkordy, SearchType.TEXT, songs).toResult()
-//    }
+//    override suspend fun searchByText(query: String): Result<ImmutableList<SearchedSong>> =
+//        commonRequest(text = query).getIfSuccess { return it }.parseSongList().getIfSuccess { return it }.toResult()
 
-    override suspend fun searchSongsByAuthor(query: String): Result<OnlineSearchResult> {
-        val songs = commonRequest(author = query).getIfSuccess { return it }.parseSongList().getIfSuccess { return it }
-        return OnlineSearchResult(OnlineSource.ZpevnikSAkordy, SearchType.AUTHOR, songs).toResult()
-    }
+    override suspend fun searchSongsByAuthor(query: String): Result<ImmutableList<SearchedSong>> =
+        commonRequest(author = query).getIfSuccess { return it }.parseSongList().getIfSuccess { return it }.toResult()
 
     private suspend fun commonRequest(
-        name: String? = null,
-        text: String? = null,
-        author: String? = null
+        name: String? = null, text: String? = null, author: String? = null
     ): Result<String> = runCatchingKtor {
         client.get {
             url("http://www.zpevnik.wz.cz/index.php")
@@ -73,30 +65,41 @@ class ZpevnikSAkordyByNameDataSourceImpl(
 
         return itemsFilter.findAll(main).map { match ->
             val (songId, songName, _, authorName) = match.destructured
-            SearchedSong(
-                songId,
-                songName,
-                authorName,
-                SongType.UNKNOWN,
-                "http://zpevnik.wz.cz/index.php?id=$songId"
-            )
+            SearchedSong(songId, songName, authorName.trimAuthorDash(), SongType.UNKNOWN)
         }.toImmutableList().toResult()
     }
 
 
     private val songTextMatch = """<div[^<>]* class="song"[^<>]*>((?>(?!</div>).)*)</div>""".toRegex(regexOption)
     private val songEmptySearch = """Nebyla nalezena žádná písnička"""
-    override suspend fun loadSong(song: SearchedSong): Result<Song> {
-        val html = loadSongRequest(song.link).getIfSuccess { return it }
+    private val songNameMatcher =
+        """<h1>([^()]*)\(<a[^<>]*>([^<>]*)</a>[^<>]*\)[^<>]*</h1>[^<>]*<div[^<>]*class="song"[^<>]*>"""
+            .toRegex(regexOption)
+    private val youtubeMatcher =
+        """www\.youtube\.com/embed/([a-zA-Z0-9-_]+)""".toRegex(regexOption)
+
+    override suspend fun loadSong(id: String): Result<Song> {
+        val link = zpevnikSAkordyLink(id)
+        val html = loadSongRequest(link).getIfSuccess { return it }
 
         val text = songTextMatch.find(html)?.groupValues?.get(1)
             ?.lines()?.trimLines()?.joinLines()
             ?: return SongErrors.ParseError.FailedToMatchSongText().toResult()
 
-        return with(song) { Song(id, name, author, text, OnlineSource.ZpevnikSAkordy, link, null) }.toResult()
+        val (name, author) = songNameMatcher.find(html)?.destructured
+            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
+
+        val video = youtubeMatcher.find(html)?.groupValues?.getOrNull(1)?.let { "https://www.youtube.com/watch?v=$it" }
+
+        return Song(
+            id, name, author.takeIf { it.isNotBlank() }?.trimAuthorDash(),
+            text, OnlineSource.ZpevnikSAkordy, link, video,
+        ).toResult()
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {
         client.get(link).also { log.i { "Retrieving ${it.request.url}" } }.bodyAsText().toResult()
     }
+
+    private fun String.trimAuthorDash() = trim().removePrefix("-").trim()
 }

@@ -1,8 +1,9 @@
 package cz.lastaapps.base.domain
 
 import cz.lastaapps.base.Result
-import cz.lastaapps.base.domain.model.search.OnlineSearchResult
+import cz.lastaapps.base.domain.model.search.SearchedSong
+import kotlinx.collections.immutable.ImmutableList
 
 internal interface SearchSongByNameDataSource {
-    suspend fun searchByName(query: String): Result<OnlineSearchResult>
+    suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>>
 }

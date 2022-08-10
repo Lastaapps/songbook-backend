@@ -6,5 +6,8 @@ import cz.lastaapps.base.domain.model.search.SearchedSong
 
 
 internal interface LoadSongDataSource {
-    suspend fun loadSong(song: SearchedSong): Result<Song>
+    suspend fun loadSong(id: String): Result<Song>
 }
+
+internal suspend fun LoadSongDataSource.loadSong(song: SearchedSong) =
+    loadSong(song.id)
