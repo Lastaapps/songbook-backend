@@ -68,7 +68,7 @@ object Dependency {
             const val cio = "io.ktor:ktor-server-cio:$version"
 
             object Unofficial {
-                const val apiKeyAuth = "dev.forst:ktor-api-key:1.1.0"
+                const val apiKeyAuth = "dev.forst:ktor-api-key:2.0.3"
             }
         }
     }

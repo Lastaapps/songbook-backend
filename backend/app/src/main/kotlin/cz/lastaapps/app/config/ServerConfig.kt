@@ -8,14 +8,15 @@ enum class Environment {
 
 data class ServerConfig(
     val usesSSL: Boolean,
-    val apiKeys: List<String>,
+    val apiKeys: Set<String>,
     val environment: Environment,
 ) {
     companion object {
         fun from(config: ApplicationConfig) = with(config) {
             ServerConfig(
                 property("app.useSSL").getString().toBoolean(),
-                property("app.apiKeys").getList(),
+                property("app.apiKeys").getString()
+                    .split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet(),
                 property("app.environment").getString().let {
                     when (it) {
                         "prod" -> Environment.PRODUCTION

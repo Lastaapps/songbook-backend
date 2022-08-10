@@ -15,7 +15,6 @@ import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import org.koin.ktor.plugin.Koin
 
 fun main(args: Array<String>) = io.ktor.server.cio.EngineMain.main(args)
@@ -63,7 +62,14 @@ fun Application.module() {
 
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
+            when (cause) {
+//                is AuthorizationException ->
+//                    call.respondText(text = "403: $cause", status = HttpStatusCode.Forbidden)
+                else -> call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
+            }
+        }
+        status(HttpStatusCode.NotFound) { call, status ->
+            call.respondText(text = "404: Page Not Found, see project docs", status = status)
         }
     }
 
@@ -83,17 +89,6 @@ fun Application.module() {
 //            val userAgent = call.request.headers["User-Agent"]
             val route = call.request.uri
             "Status: $status, HTTP method: $httpMethod, Route: $route"
-        }
-    }
-
-    routing {
-        get("/") {
-            call.respondText("Hello, world!")
-        }
-        authenticate {
-            get("/auth") {
-                call.respondText("Hello, world!")
-            }
         }
     }
 }

@@ -4,6 +4,7 @@
       <env name="DOMAIN" value="localhost" />
       <env name="PORT" value="8080" />
       <env name="ENV" value="dev" />
+      <env name="KEYS" value="umLwzRebPcjr3sY5Ev3KoxjE" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="cz.lastaapps.app.MainKt" />
     <module name="Songbook.backend.app.main" />
