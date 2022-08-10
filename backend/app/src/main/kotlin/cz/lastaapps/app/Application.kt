@@ -19,13 +19,15 @@ import org.koin.ktor.plugin.Koin
 
 fun main(args: Array<String>) = io.ktor.server.cio.EngineMain.main(args)
 
+@Suppress("unused")
 fun Application.module() {
+    val app = this
     val config = ServerConfig.from(environment.config)
 
     install(Koin) {
         modules(
             org.koin.dsl.module {
-                single { this }
+                single { app }
                 single { environment.config }
                 single { config }
             },

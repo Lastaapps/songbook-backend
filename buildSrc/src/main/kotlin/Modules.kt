@@ -6,6 +6,7 @@ object Modules {
 
         object Feature {
             const val song = ":backend:feature:song"
+            const val songPresentation = ":backend:feature:song:presentation"
         }
     }
 }

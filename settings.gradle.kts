@@ -18,4 +18,5 @@ include(
     ":backend:app",
     ":backend:base",
     ":backend:feature:song",
+    ":backend:feature:song:presentation",
 )

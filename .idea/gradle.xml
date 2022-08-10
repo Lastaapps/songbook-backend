@@ -16,6 +16,7 @@
             <option value="$PROJECT_DIR$/backend/base" />
             <option value="$PROJECT_DIR$/backend/feature" />
             <option value="$PROJECT_DIR$/backend/feature/song" />
+            <option value="$PROJECT_DIR$/backend/feature/song/presentation" />
             <option value="$PROJECT_DIR$/buildSrc" />
           </set>
         </option>

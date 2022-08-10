@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="presentation-desktop-1.0.0">
+    <output-path>$PROJECT_DIR$/backend/feature/song/presentation/build/libs</output-path>
+    <root id="archive" name="presentation-desktop-1.0.0.jar">
+      <element id="module-output" name="Songbook.backend.feature.song.presentation.desktopMain" />
+    </root>
+  </artifact>
+</component>

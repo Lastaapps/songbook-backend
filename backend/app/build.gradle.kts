@@ -12,10 +12,9 @@ application {
 }
 
 dependencies {
-    implementation(project(Modules.Backend.Feature.song))
+    implementation(project(Modules.Backend.Feature.songPresentation))
     implementation(project(Modules.Backend.base))
 
-    implementation(Dependency.Koin.core)
     implementation(Dependency.Koin.ktorServer)
 
     implementation(Dependency.Ktor.Server.core)

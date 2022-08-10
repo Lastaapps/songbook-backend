@@ -31,15 +31,11 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(Dependency.KotlinX.dateTime)
-                api(Dependency.KotlinX.collectionImmutable)
-                api(Dependency.KotlinX.serializationJson)
-                api(Dependency.kmLogging)
-                api(Dependency.fluidLocale)
+                implementation(project(Modules.Backend.base))
+                implementation(project(Modules.Backend.Feature.song))
 
-                api(Dependency.Koin.core)
-
-                api(Dependency.Ktor.Server.core)
+                implementation(Dependency.Ktor.Server.core)
+                implementation(Dependency.Ktor.Server.auth)
             }
         }
         val commonTest by getting {
@@ -50,6 +46,8 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
+                implementation(Dependency.Ktor.Client.cio)
+                implementation(Dependency.Ktor.Server.cio)
                 implementation(Dependency.logback)
             }
         }
