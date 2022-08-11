@@ -19,6 +19,9 @@ sealed class SongErrors(message: String?, throwable: Throwable?) : ErrorResult(m
 
         class FailedToMatchSongNameOrAuthor(throwable: Throwable? = null) :
             ParseError("Failed to match song name or author", throwable)
+
+        class UnknownParsingError(throwable: Throwable?) :
+            ParseError("Unknown parsing error${throwable?.message?.let { ": $it" } ?: ""}", throwable)
     }
 
     class ToShortQuery(minLength: Int, throwable: Throwable? = null) :

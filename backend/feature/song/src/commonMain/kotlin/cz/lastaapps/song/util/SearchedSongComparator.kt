@@ -12,5 +12,7 @@ class SearchedSongComparator(
 
     override fun compare(p0: SearchedSong, p1: SearchedSong): Int =
         comparator.compare(p0.name, p1.name).takeUnless { it == 0 }
-            ?: comparator.compare(p0.author, p1.author)
+            ?: comparator.compare(p0.author, p1.author).takeUnless { it == 0 }
+            ?: p0.source.name.compareTo(p1.source.name).takeUnless { it == 0 }
+            ?: p0.id.compareTo(p1.id)
 }

@@ -8,9 +8,10 @@ import cz.lastaapps.song.domain.model.Song
 import cz.lastaapps.song.domain.model.SongType
 import cz.lastaapps.song.domain.model.search.OnlineSource
 import cz.lastaapps.song.domain.model.search.SearchedSong
-import cz.lastaapps.song.domain.sources.ZpevnikSAkordyByNameDataSource
+import cz.lastaapps.song.domain.sources.ZpevnikSAkordyDataSource
 import cz.lastaapps.song.util.joinLines
 import cz.lastaapps.song.util.runCatchingKtor
+import cz.lastaapps.song.util.runCatchingParse
 import cz.lastaapps.song.util.trimLines
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -20,9 +21,9 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import org.lighthousegames.logging.logging
 
-class ZpevnikSAkordyByNameDataSourceImpl(
+class ZpevnikSAkordyDataSourceImpl(
     private val client: HttpClient,
-) : ZpevnikSAkordyByNameDataSource {
+) : ZpevnikSAkordyDataSource {
 
     companion object {
         private val log = logging()
@@ -52,26 +53,30 @@ class ZpevnikSAkordyByNameDataSourceImpl(
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
-    private val mainFilter = """<div[^<>]* class="songy"[^<>]*>(.*)</div>""".toRegex(regexOption)
-    private val itemsFilter =
+    private val mainMatcher = """<div[^<>]* class="songy"[^<>]*>(.*)</div>""".toRegex(regexOption)
+    private val songEmptyMatcher = """Nebyla nalezena žádná písnička"""
+    private val itemsMatcher =
         """<li[^<>]*><a[^<>]* href="\?id=(\d+)"[^<>]*>([^<>]+)</a>[^<>]*\(<a[^<>]* href="\?id=(\d+)"[^<>]*>([^<]*)</a>\)</li>"""
             .toRegex(regexOption)
 
     private fun String.parseSongList(): Result<ImmutableList<SearchedSong>> {
-        val main = mainFilter.find(this)?.groupValues?.getOrNull(1)
-            ?: Unit.takeIf { this.contains(songEmptySearch) }
+        val main = mainMatcher.find(this)?.groupValues?.getOrNull(1)
+            ?: Unit.takeIf { this.contains(songEmptyMatcher) }
                 ?.let { return persistentListOf<SearchedSong>().toResult() }
             ?: return SongErrors.ParseError.FailedToMatchSongList().toResult()
 
-        return itemsFilter.findAll(main).map { match ->
-            val (songId, songName, _, authorName) = match.destructured
-            SearchedSong(songId, songName, authorName.trimAuthorDash(), SongType.UNKNOWN, OnlineSource.ZpevnikSAkordy)
-        }.toImmutableList().toResult()
+        return runCatchingParse {
+            itemsMatcher.findAll(main).map { match ->
+                val (songId, songName, _, authorName) = match.destructured
+                SearchedSong(
+                    songId, songName, authorName.trimAuthorDash(), SongType.UNKNOWN, OnlineSource.ZpevnikSAkordy,
+                )
+            }.toImmutableList().toResult()
+        }
     }
 
 
-    private val songTextMatch = """<div[^<>]* class="song"[^<>]*>((?>(?!</div>).)*)</div>""".toRegex(regexOption)
-    private val songEmptySearch = """Nebyla nalezena žádná písnička"""
+    private val songTextMatcher = """<div[^<>]* class="song"[^<>]*>((?>(?!</div>).)*)</div>""".toRegex(regexOption)
     private val songNameMatcher =
         """<h1>([^()]*)\(<a[^<>]*>([^<>]*)</a>[^<>]*\)[^<>]*</h1>[^<>]*<div[^<>]*class="song"[^<>]*>"""
             .toRegex(regexOption)
@@ -82,19 +87,22 @@ class ZpevnikSAkordyByNameDataSourceImpl(
         val link = zpevnikSAkordyLink(id)
         val html = loadSongRequest(link).getIfSuccess { return it }
 
-        val text = songTextMatch.find(html)?.groupValues?.get(1)
-            ?.lines()?.trimLines()?.joinLines()
-            ?: return SongErrors.ParseError.FailedToMatchSongText().toResult()
+        return runCatchingParse {
+            val text = songTextMatcher.find(html)?.groupValues?.get(1)
+                ?.lines()?.trimLines()?.joinLines()
+                ?: return SongErrors.ParseError.FailedToMatchSongText().toResult()
 
-        val (name, author) = songNameMatcher.find(html)?.destructured
-            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
+            val (name, author) = songNameMatcher.find(html)?.destructured
+                ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
 
-        val video = youtubeMatcher.find(html)?.groupValues?.getOrNull(1)?.let { "https://www.youtube.com/watch?v=$it" }
+            val video =
+                youtubeMatcher.find(html)?.groupValues?.getOrNull(1)?.let { "https://www.youtube.com/watch?v=$it" }
 
-        return Song(
-            id, name, author.takeIf { it.isNotBlank() }?.trimAuthorDash(),
-            text, OnlineSource.ZpevnikSAkordy, link, video,
-        ).toResult()
+            Song(
+                id, name, author.takeIf { it.isNotBlank() }?.trimAuthorDash(),
+                text, OnlineSource.ZpevnikSAkordy, link, video,
+            ).toResult()
+        }
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {

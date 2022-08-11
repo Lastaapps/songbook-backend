@@ -4,13 +4,13 @@ import cz.lastaapps.base.Result
 import cz.lastaapps.song.domain.model.Author
 import cz.lastaapps.song.domain.model.Song
 import cz.lastaapps.song.domain.model.search.SearchedSong
-import cz.lastaapps.song.domain.sources.SuperMusicByNameDataSource
+import cz.lastaapps.song.domain.sources.SuperMusicDataSource
 import io.ktor.client.*
 import kotlinx.collections.immutable.ImmutableList
 
-internal class SuperMusicByNameDataSourceImpl(
+internal class SuperMusicDataSourceImpl(
     client: HttpClient,
-) : SuperMusicByNameDataSource {
+) : SuperMusicDataSource {
 
     companion object {
         const val minQueryLength = 3

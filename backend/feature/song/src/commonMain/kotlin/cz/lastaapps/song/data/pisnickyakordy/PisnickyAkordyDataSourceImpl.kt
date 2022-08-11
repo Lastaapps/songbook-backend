@@ -11,9 +11,10 @@ import cz.lastaapps.song.domain.model.Song
 import cz.lastaapps.song.domain.model.SongType
 import cz.lastaapps.song.domain.model.search.OnlineSource
 import cz.lastaapps.song.domain.model.search.SearchedSong
-import cz.lastaapps.song.domain.sources.PisnickyAkordyByNameDataSource
+import cz.lastaapps.song.domain.sources.PisnickyAkordyDataSource
 import cz.lastaapps.song.util.joinLines
 import cz.lastaapps.song.util.runCatchingKtor
+import cz.lastaapps.song.util.runCatchingParse
 import cz.lastaapps.song.util.trimLines
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -26,9 +27,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import org.lighthousegames.logging.logging
 
-class PisnickyAkordyByNameDataSourceImpl(
+class PisnickyAkordyDataSourceImpl(
     private val client: HttpClient,
-) : PisnickyAkordyByNameDataSource {
+) : PisnickyAkordyDataSource {
 
     companion object {
         private val log = logging()
@@ -110,15 +111,17 @@ class PisnickyAkordyByNameDataSourceImpl(
         val match = authorSongListMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchInterpreterSongList().toResult()
 
-        return authorEachSongMather.findAll(match).map {
-            val (link, type, name) = it.destructured
-            val foundType = when {
-                type.contains("glyphicon-music") -> SongType.CHORDS
-                type.contains("glyphicon-") -> return@map null // work in progress songs
-                else -> SongType.TEXT
-            }
-            SearchedSong(link, name.trim(), author.name, foundType, OnlineSource.PisnickyAkordy)
-        }.filterNotNull().toImmutableList().toResult()
+        return runCatchingParse {
+            authorEachSongMather.findAll(match).map {
+                val (link, type, name) = it.destructured
+                val foundType = when {
+                    type.contains("glyphicon-music") -> SongType.CHORDS
+                    type.contains("glyphicon-") -> return@map null // work in progress songs
+                    else -> SongType.TEXT
+                }
+                SearchedSong(link, name.trim(), author.name, foundType, OnlineSource.PisnickyAkordy)
+            }.filterNotNull().toImmutableList().toResult()
+        }
     }
 
     private suspend fun loadSongsForAuthorRequest(link: String): Result<String> = runCatchingKtor {
@@ -143,10 +146,12 @@ class PisnickyAkordyByNameDataSourceImpl(
             .replace("</span>".toRegex(), "]")
             .lines().trimLines().joinLines()
 
-        val (name, author) = songNameMatcher.find(html)?.destructured
-            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
+        return runCatchingParse {
+            val (name, author) = songNameMatcher.find(html)?.destructured
+                ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
 
-        return Song(id, name, author, songText, OnlineSource.PisnickyAkordy, link, null).toResult()
+            Song(id, name, author, songText, OnlineSource.PisnickyAkordy, link, null).toResult()
+        }
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {

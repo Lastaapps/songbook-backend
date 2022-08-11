@@ -4,7 +4,7 @@ import cz.lastaapps.song.domain.LoadSongDataSource
 import cz.lastaapps.song.domain.SearchSongByAuthorDataSource
 import cz.lastaapps.song.domain.SearchSongByNameDataSource
 
-internal interface ZpevnikSAkordyByNameDataSource
+internal interface ZpevnikSAkordyDataSource
 // Text search is to slow
     : SearchSongByNameDataSource, SearchSongByAuthorDataSource, LoadSongDataSource
 //: SearchSongByNameDataSource, SearchSongByTextDataSource, SearchSongByAuthorDataSource, LoadSongDataSource

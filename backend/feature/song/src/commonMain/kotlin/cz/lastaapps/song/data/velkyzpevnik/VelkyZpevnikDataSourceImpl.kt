@@ -12,6 +12,7 @@ import cz.lastaapps.song.domain.model.search.SearchedSong
 import cz.lastaapps.song.domain.sources.VelkyZpevnikDataSource
 import cz.lastaapps.song.util.joinLines
 import cz.lastaapps.song.util.runCatchingKtor
+import cz.lastaapps.song.util.runCatchingParse
 import cz.lastaapps.song.util.trimLines
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -43,11 +44,14 @@ class VelkyZpevnikDataSourceImpl(
         val main = sectionNameMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return persistentListOf<SearchedSong>().toResult()
 
-        @Suppress("UNUSED_VARIABLE")
-        return sectionNameSongMatcher.findAll(main).map { match ->
-            val (songLink, songName, authorLink, authorName) = match.destructured
-            SearchedSong(songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN, OnlineSource.VelkyZpevnik)
-        }.toImmutableList().toResult()
+        return runCatchingParse {
+            sectionNameSongMatcher.findAll(main).map { match ->
+                val (songLink, songName, _, authorName) = match.destructured
+                SearchedSong(
+                    songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN, OnlineSource.VelkyZpevnik,
+                )
+            }.toImmutableList().toResult()
+        }
     }
 
     private val sectionTextMatcher =
@@ -61,11 +65,18 @@ class VelkyZpevnikDataSourceImpl(
         val main = sectionTextMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return persistentListOf<SearchedSong>().toResult()
 
-        @Suppress("UNUSED_VARIABLE")
-        return sectionTextSongMatcher.findAll(main).map { match ->
-            val (songLink, songName, authorLink, authorName) = match.destructured
-            SearchedSong(songLink, songName, authorName.trimAuthorName(), SongType.UNKNOWN, OnlineSource.VelkyZpevnik)
-        }.toImmutableList().toResult()
+        return runCatchingParse {
+            sectionTextSongMatcher.findAll(main).map { match ->
+                val (songLink, songName, _, authorName) = match.destructured
+                SearchedSong(
+                    songLink,
+                    songName,
+                    authorName.trimAuthorName(),
+                    SongType.UNKNOWN,
+                    OnlineSource.VelkyZpevnik
+                )
+            }.toImmutableList().toResult()
+        }
     }
 
     private val sectionAuthorMatcher =
@@ -79,10 +90,12 @@ class VelkyZpevnikDataSourceImpl(
         val main = sectionAuthorMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return persistentListOf<Author>().toResult()
 
-        return sectionAuthorInfoMatcher.findAll(main).map { match ->
-            val (link, name) = match.destructured
-            Author(link, name.trimAuthorName(), null, velkyZpevnikLink(link))
-        }.toImmutableList().toResult()
+        return runCatchingParse {
+            sectionAuthorInfoMatcher.findAll(main).map { match ->
+                val (link, name) = match.destructured
+                Author(link, name.trimAuthorName(), null, velkyZpevnikLink(link))
+            }.toImmutableList().toResult()
+        }
     }
 
     private suspend fun loadPageForQuery(query: String): Result<String> = runCatchingKtor {
@@ -101,10 +114,12 @@ class VelkyZpevnikDataSourceImpl(
         val main = artistSongsSectionMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return persistentListOf<SearchedSong>().toResult()
 
-        return artistsSongsListMatcher.findAll(main).map { match ->
-            val (link, name) = match.destructured
-            SearchedSong(link, name, author.name, SongType.UNKNOWN, OnlineSource.VelkyZpevnik)
-        }.toImmutableList().toResult()
+        return runCatchingParse {
+            artistsSongsListMatcher.findAll(main).map { match ->
+                val (link, name) = match.destructured
+                SearchedSong(link, name, author.name, SongType.UNKNOWN, OnlineSource.VelkyZpevnik)
+            }.toImmutableList().toResult()
+        }
     }
 
     private suspend fun loadSongsForAuthorRequest(link: String) = runCatchingKtor {
@@ -131,10 +146,12 @@ class VelkyZpevnikDataSourceImpl(
             .replace("</span>", "]")
             .lines().trimLines().joinLines()
 
-        val (name, author) = (songNameMatcher.find(html)?.destructured
-            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult())
+        return runCatchingParse {
+            val (name, author) = (songNameMatcher.find(html)?.destructured
+                ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult())
 
-        return Song(id, name, author.trimAuthorName(), text, OnlineSource.VelkyZpevnik, link, null).toResult()
+            Song(id, name, author.trimAuthorName(), text, OnlineSource.VelkyZpevnik, link, null).toResult()
+        }
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {

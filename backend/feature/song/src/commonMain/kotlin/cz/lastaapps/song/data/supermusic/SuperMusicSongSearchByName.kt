@@ -12,6 +12,7 @@ import cz.lastaapps.song.domain.model.search.OnlineSource
 import cz.lastaapps.song.domain.model.search.SearchedSong
 import cz.lastaapps.song.util.bodyAsSafeText
 import cz.lastaapps.song.util.runCatchingKtor
+import cz.lastaapps.song.util.runCatchingParse
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -28,7 +29,7 @@ internal class SuperMusicSongSearchByName(
     }
 
     override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> {
-        val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
+        val minQuery = SuperMusicDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
         val response = commonRequest(query, true).getIfSuccess { return it }
@@ -37,7 +38,7 @@ internal class SuperMusicSongSearchByName(
     }
 
     override suspend fun searchByText(query: String): Result<ImmutableList<SearchedSong>> {
-        val minQuery = SuperMusicByNameDataSourceImpl.minQueryLength
+        val minQuery = SuperMusicDataSourceImpl.minQueryLength
         if (query.length < minQuery) return SongErrors.ToShortQuery(minQuery).toResult()
 
         val response = commonRequest(query, false).getIfSuccess { return it }
@@ -55,32 +56,32 @@ internal class SuperMusicSongSearchByName(
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
-    private val songListRegex =
+    private val songListMatcher =
         """<table[^<>]*>(?>(?!</table>).)*Prebehlo vyhľadávanie slov:((?>(?!</table>).)*)</table>""".toRegex(regexOption)
-    private val songFindIndividual =
+    private val songEachMatcher =
         """<a[^<>]* href="[^"]*idpiesne=(\d+)[^"]*"[^<>]*><b>([^<>]*)</b></a> - ([^<>]+) \(<a[^<>]*>([^<>]*)</a>\)"""
             .toRegex(regexOption)
 
     private suspend fun HttpResponse.parse(): Result<ImmutableList<SearchedSong>> {
-        log.i { headers }
-
         val text = bodyAsSafeText()
-        val selectionOnly = songListRegex.find(text)?.groupValues?.getOrNull(0)
+        val selectionOnly = songListMatcher.find(text)?.groupValues?.getOrNull(0)
             ?: return SongErrors.ParseError.FailedToMatchSongList(Throwable()).toResult()
 
-        return songFindIndividual.findAll(selectionOnly).map { result ->
-            val (id, name, type, author) = result.destructured
+        return runCatchingParse {
+            songEachMatcher.findAll(selectionOnly).map { result ->
+                val (id, name, type, author) = result.destructured
 
-            val mainStyle = when {
-                type.contains("akordy") -> SongType.CHORDS
-                type.contains("texty") -> SongType.TEXT
-                type.contains("taby") -> SongType.TAB
-                type.contains("melodie") -> SongType.NOTES
-                type.contains("preklady") -> SongType.TRANSLATION
-                else -> SongType.UNKNOWN
-            }
+                val mainStyle = when {
+                    type.contains("akordy") -> SongType.CHORDS
+                    type.contains("texty") -> SongType.TEXT
+                    type.contains("taby") -> SongType.TAB
+                    type.contains("melodie") -> SongType.NOTES
+                    type.contains("preklady") -> SongType.TRANSLATION
+                    else -> SongType.UNKNOWN
+                }
 
-            SearchedSong(id, name, author, mainStyle, OnlineSource.SuperMusic)
-        }.toPersistentList().toResult()
+                SearchedSong(id, name, author, mainStyle, OnlineSource.SuperMusic)
+            }.toPersistentList().toResult()
+        }
     }
 }

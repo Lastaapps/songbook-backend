@@ -25,6 +25,7 @@ private val SongErrors.httpCode: HttpStatusCode
         SongErrors.WebError.NoQueryType,
         SongErrors.WebError.QueryMissing,
         SongErrors.WebError.QueryToShort,
-        is SongErrors.WebError.UnknownSource
+        is SongErrors.WebError.UnknownSource,
+        is SongErrors.ParseError.UnknownParsingError
         -> HttpStatusCode.BadRequest
     }

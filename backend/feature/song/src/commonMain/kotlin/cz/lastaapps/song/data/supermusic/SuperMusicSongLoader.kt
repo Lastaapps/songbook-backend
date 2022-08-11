@@ -23,47 +23,49 @@ internal class SuperMusicSongLoader(
     }
 
     private val regexOption = setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
-    private val songChordsPattern =
+    private val songChordsMatcher =
         """<font color=black><script LANGUAGE="JavaScript">(?>(?!</script>).)*</script>((?>(?!<script).)*)<script"""
             .toRegex(regexOption)
-    private val songTabPattern =
+    private val songTabMatcher =
         """<font color=black><pre><pre>((?>(?!</pre).)*)</pre></pre></font>""".toRegex(regexOption)
-    private val songMelodyAndTextPattern =
+    private val songMelodyAndTextMatcher =
         """<font color=black>((?>(?!</font).)*)</font""".toRegex(regexOption)
-    private val youtubePattern =
+    private val youtubeMatcher =
         """(https://www\.youtube\.com/embed/\w+)""".toRegex(regexOption)
-    private val songNamePattern =
+    private val songNameMatcher =
         """<font class="test3">([^-]*)-([^<]*)</font>""".toRegex(regexOption)
 
     override suspend fun loadSong(id: String): Result<Song> {
         val link = supermusicLink(id)
         val html = loadSongRequest(link).getIfSuccess { return it }
 
-        val youtube = youtubePattern.find(html)?.groupValues?.getOrNull(1)?.replace("embed/", "")
-        val (author, name) = songNamePattern.find(html)?.destructured
-            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
+        return runCatchingParse {
+            val youtube = youtubeMatcher.find(html)?.groupValues?.getOrNull(1)?.replace("embed/", "")
+            val (author, name) = songNameMatcher.find(html)?.destructured
+                ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult()
 
-        return (null
-            ?: songChordsPattern.find(html)?.groupValues?.get(0 + 1)
-            ?: songTabPattern.find(html)?.groupValues?.get(0 + 1)
-            ?: songMelodyAndTextPattern.find(html)?.groupValues?.get(0 + 1)
-                )
-            ?.let {
-                val text = it
-                    .replace("<sup>", "")
-                    .replace("</sup>", "")
-                    .replace("<pre>", "")
-                    .replace("</pre>", "")
-                    .replace("""<a[^<>]*>""".toRegex(), "[")
-                    .replace("""</a>""".toRegex(), "]")
-                    .replace("""<[^b]*br[^<>]*>""".toRegex(), "\n")
-                    .lines()
-                    .trimLines()
-                    .dropToMuchLines()
-                    .joinLines()
+            (null
+                ?: songChordsMatcher.find(html)?.groupValues?.get(1)
+                ?: songTabMatcher.find(html)?.groupValues?.get(1)
+                ?: songMelodyAndTextMatcher.find(html)?.groupValues?.get(1)
+                    )
+                ?.let {
+                    val text = it
+                        .replace("<sup>", "")
+                        .replace("</sup>", "")
+                        .replace("<pre>", "")
+                        .replace("</pre>", "")
+                        .replace("""<a[^<>]*>""".toRegex(), "[")
+                        .replace("""</a>""".toRegex(), "]")
+                        .replace("""<[^b]*br[^<>]*>""".toRegex(), "\n")
+                        .lines()
+                        .trimLines()
+                        .dropToMuchLines()
+                        .joinLines()
 
-                Song(id, name.trim(), author.trim(), text, OnlineSource.SuperMusic, link, youtube)
-            }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()
+                    Song(id, name.trim(), author.trim(), text, OnlineSource.SuperMusic, link, youtube)
+                }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()
+        }
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {

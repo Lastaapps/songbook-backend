@@ -1,7 +1,7 @@
 package cz.lastaapps.song.data
 
 import cz.lastaapps.base.asSuccess
-import cz.lastaapps.song.data.zpevniksakordy.ZpevnikSAkordyByNameDataSourceImpl
+import cz.lastaapps.song.data.zpevniksakordy.ZpevnikSAkordyDataSourceImpl
 import cz.lastaapps.song.domain.loadSong
 import cz.lastaapps.song.util.songBookHttpClient
 import io.kotest.core.spec.style.StringSpec
@@ -12,7 +12,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldNotBeBlank
 
 class ZpevnikSAkordyDataSourceTest : StringSpec({
-    val source = ZpevnikSAkordyByNameDataSourceImpl(songBookHttpClient)
+    val source = ZpevnikSAkordyDataSourceImpl(songBookHttpClient)
 
     "searchByName" {
         val res = source.searchByName("Hrobař").asSuccess().data

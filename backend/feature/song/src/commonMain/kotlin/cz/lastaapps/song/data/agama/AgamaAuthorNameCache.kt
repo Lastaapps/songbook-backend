@@ -5,6 +5,7 @@ import cz.lastaapps.base.casted
 import cz.lastaapps.base.error.SongErrors
 import cz.lastaapps.base.toResult
 import cz.lastaapps.song.util.runCatchingKtor
+import cz.lastaapps.song.util.runCatchingParse
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -52,9 +53,11 @@ internal class AgamaAuthorNameCacheImpl(
     private suspend fun load(): Result<Map<String, String>> = runCatchingKtor {
         val html = client.get("http://agama2000.com").also { log.i { "Requesting ${it.request.url}" } }.bodyAsText()
 
-        itemMatcher.findAll(html).map { match ->
-            val (id, name) = match.destructured
-            id to name
-        }.toMap().toResult()
+        runCatchingParse {
+            itemMatcher.findAll(html).map { match ->
+                val (id, name) = match.destructured
+                id to name
+            }.toMap().toResult()
+        }
     }
 }

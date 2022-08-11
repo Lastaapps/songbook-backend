@@ -1,7 +1,7 @@
 package cz.lastaapps.song.data
 
 import cz.lastaapps.base.asSuccess
-import cz.lastaapps.song.data.supermusic.SuperMusicByNameDataSourceImpl
+import cz.lastaapps.song.data.supermusic.SuperMusicDataSourceImpl
 import cz.lastaapps.song.domain.model.Author
 import cz.lastaapps.song.util.songBookHttpClient
 import io.kotest.core.spec.style.StringSpec
@@ -13,7 +13,7 @@ import io.kotest.matchers.string.shouldNotBeBlank
 
 internal class SuperMusicDataSourceTest : StringSpec({
 
-    val source = SuperMusicByNameDataSourceImpl(songBookHttpClient)
+    val source = SuperMusicDataSourceImpl(songBookHttpClient)
 
     "searchByName" {
         val res = source.searchByName("Hrobař").asSuccess().data

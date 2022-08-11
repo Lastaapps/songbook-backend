@@ -1,15 +1,20 @@
 package cz.lastaapps.song.presentation
 
+import cz.lastaapps.base.Result
 import cz.lastaapps.base.error.SongErrors
 import cz.lastaapps.base.error.util.respondWithError
 import cz.lastaapps.base.util.params
+import cz.lastaapps.song.domain.usecase.SearchSongUseCase
 import cz.lastaapps.song.presentation.model.Source
+import cz.lastaapps.song.presentation.model.payload.toPayload
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 class SearchRoutes(
     app: Application,
+    private val searchSong: SearchSongUseCase,
 ) {
     init {
         app.routing {
@@ -26,9 +31,9 @@ class SearchRoutes(
         get("query") {
             val query = params["query"]
             val page = params["page"]?.toIntOrNull()
-            val name = params["byName"] ?: false
-            val author = params["byAuthor"] ?: false
-            val text = params["byText"] ?: false
+            val name = params["byName"]?.toBooleanStrictOrNull() ?: false
+            val author = params["byAuthor"]?.toBooleanStrictOrNull() ?: false
+            val text = params["byText"]?.toBooleanStrictOrNull() ?: false
 
             if (query.isNullOrBlank()) {
                 call.respondWithError(SongErrors.WebError.QueryMissing)
@@ -42,12 +47,16 @@ class SearchRoutes(
                 call.respondWithError(SongErrors.WebError.NegativePage)
                 return@get
             }
-            if (name == false && author == false && text == false) {
+            if (!name && !author && !text) {
                 call.respondWithError(SongErrors.WebError.NoQueryType)
                 return@get
             }
+            val params = SearchSongUseCase.Params(query, name, text, author, page)
 
-
+            when (val res = searchSong(params)) {
+                is Result.Error -> call.respondWithError(res.error)
+                is Result.Success -> call.respond(res.data.map { it.toPayload() })
+            }
         }
     }
 
@@ -67,7 +76,7 @@ class SearchRoutes(
                 return@get
             }
 
-
+            call.respond("Mind you own business")
         }
     }
 }

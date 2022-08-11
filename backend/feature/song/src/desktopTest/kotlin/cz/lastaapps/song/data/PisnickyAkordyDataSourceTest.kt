@@ -1,7 +1,7 @@
 package cz.lastaapps.song.data
 
 import cz.lastaapps.base.asSuccess
-import cz.lastaapps.song.data.pisnickyakordy.PisnickyAkordyByNameDataSourceImpl
+import cz.lastaapps.song.data.pisnickyakordy.PisnickyAkordyDataSourceImpl
 import cz.lastaapps.song.util.songBookHttpClient
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -10,7 +10,7 @@ import io.kotest.matchers.string.shouldBeEmpty
 import io.kotest.matchers.string.shouldNotBeBlank
 
 class PisnickyAkordyDataSourceTest : StringSpec({
-    val source = PisnickyAkordyByNameDataSourceImpl(songBookHttpClient)
+    val source = PisnickyAkordyDataSourceImpl(songBookHttpClient)
 
     "searchByName" {
         val res = source.searchByName("Hrobař").asSuccess().data

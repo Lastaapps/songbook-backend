@@ -13,6 +13,7 @@ import cz.lastaapps.song.domain.model.search.SearchedSong
 import cz.lastaapps.song.domain.sources.BrnkniDataSource
 import cz.lastaapps.song.util.joinLines
 import cz.lastaapps.song.util.runCatchingKtor
+import cz.lastaapps.song.util.runCatchingParse
 import cz.lastaapps.song.util.trimLines
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -46,23 +47,25 @@ internal class BrnkniDataSourceImpl(
     override suspend fun searchByName(query: String): Result<ImmutableList<SearchedSong>> {
         return commonRequest(query, true)
             .getIfSuccess { return it }
-            .map { html ->
+            .runCatchingParse {
+                map { html ->
 
-                val main = songListMatcher.find(html)?.groupValues?.getOrNull(1)
-                    ?: Unit.takeIf { html.contains(songListEmpty) }?.let { return@map emptyList() }
-                    ?: return SongErrors.ParseError.FailedToMatchSongList().toResult()
+                    val main = songListMatcher.find(html)?.groupValues?.getOrNull(1)
+                        ?: Unit.takeIf { html.contains(songListEmpty) }?.let { return@map emptyList() }
+                        ?: return SongErrors.ParseError.FailedToMatchSongList().toResult()
 
-                songItemMatcher.findAll(main).map { match ->
-                    val (songLink, songName, authorName, type) = match.destructured
-                    val songType = when (type) {
-                        "Akordy" -> SongType.CHORDS
-                        "Taby" -> SongType.TAB
-                        "Akordy + taby" -> SongType.CHORDS_AND_TAB
-                        else -> SongType.UNKNOWN
-                    }
-                    SearchedSong(songLink, songName, authorName, songType, OnlineSource.Brnkni)
-                }.toPersistentList()
-            }.flatten().toPersistentList().toResult()
+                    songItemMatcher.findAll(main).map { match ->
+                        val (songLink, songName, authorName, type) = match.destructured
+                        val songType = when (type) {
+                            "Akordy" -> SongType.CHORDS
+                            "Taby" -> SongType.TAB
+                            "Akordy + taby" -> SongType.CHORDS_AND_TAB
+                            else -> SongType.UNKNOWN
+                        }
+                        SearchedSong(songLink, songName, authorName, songType, OnlineSource.Brnkni)
+                    }.toPersistentList()
+                }.flatten().toPersistentList().toResult()
+            }
     }
 
     private val authorListMatcher =
@@ -75,16 +78,18 @@ internal class BrnkniDataSourceImpl(
     override suspend fun searchAuthors(query: String): Result<ImmutableList<Author>> =
         commonRequest(query, searchForSongs = false)
             .getIfSuccess { return it }
-            .map { html ->
-                val main = authorListMatcher.find(html)?.groupValues?.getOrNull(1)
-                    ?: Unit.takeIf { html.contains(authorListEmpty) }?.let { return@map emptyList() }
-                    ?: return SongErrors.ParseError.FailedToMatchInterpreterList().toResult()
+            .runCatchingParse {
+                map { html ->
+                    val main = authorListMatcher.find(html)?.groupValues?.getOrNull(1)
+                        ?: Unit.takeIf { html.contains(authorListEmpty) }?.let { return@map emptyList() }
+                        ?: return SongErrors.ParseError.FailedToMatchInterpreterList().toResult()
 
-                authorItemMatcher.findAll(main).map { match ->
-                    val (authorLink, authorName, songNumber) = match.destructured
-                    Author(authorLink, authorName, songNumber.toIntOrNull(), brnkniLink(authorLink))
-                }.toPersistentList()
-            }.flatten().toPersistentList().toResult()
+                    authorItemMatcher.findAll(main).map { match ->
+                        val (authorLink, authorName, songNumber) = match.destructured
+                        Author(authorLink, authorName, songNumber.toIntOrNull(), brnkniLink(authorLink))
+                    }.toPersistentList()
+                }.flatten().toPersistentList().toResult()
+            }
 
     private suspend fun commonRequest(query: String, searchForSongs: Boolean): Result<List<String>> = coroutineScope {
         runCatchingKtor {
@@ -113,16 +118,18 @@ internal class BrnkniDataSourceImpl(
         val main = authorSongAreaMatcher.find(html)?.groupValues?.getOrNull(1)
             ?: return SongErrors.ParseError.FailedToMatchInterpreterSongList().toResult()
 
-        return authorSongItemMatcher.findAll(main).map { match ->
-            val (link, name, type) = match.destructured
-            val songType = when (type) {
-                "Akordy" -> SongType.CHORDS
-                "Taby" -> SongType.TAB
-                "Akordy + taby" -> SongType.CHORDS_AND_TAB
-                else -> SongType.UNKNOWN
-            }
-            SearchedSong(link, name, author.name, songType, OnlineSource.Brnkni)
-        }.toImmutableList().toResult()
+        return runCatchingParse {
+            authorSongItemMatcher.findAll(main).map { match ->
+                val (link, name, type) = match.destructured
+                val songType = when (type) {
+                    "Akordy" -> SongType.CHORDS
+                    "Taby" -> SongType.TAB
+                    "Akordy + taby" -> SongType.CHORDS_AND_TAB
+                    else -> SongType.UNKNOWN
+                }
+                SearchedSong(link, name, author.name, songType, OnlineSource.Brnkni)
+            }.toImmutableList().toResult()
+        }
     }
 
     private suspend fun loadSongsForAuthorRequest(link: String): Result<String> = runCatchingKtor {
@@ -151,10 +158,12 @@ internal class BrnkniDataSourceImpl(
             .replace("""</p>$""".toRegex(), "")
             .lines().trimLines().joinLines()
 
-        val (name, _, author) = (songNameMatcher.find(html)?.destructured
-            ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult())
+        return runCatchingParse {
+            val (name, _, author) = (songNameMatcher.find(html)?.destructured
+                ?: return SongErrors.ParseError.FailedToMatchSongNameOrAuthor().toResult())
 
-        return Song(id, name, author, text, OnlineSource.Brnkni, link, null).toResult()
+            Song(id, name, author, text, OnlineSource.Brnkni, link, null).toResult()
+        }
     }
 
     private suspend fun loadSongRequest(link: String): Result<String> = runCatchingKtor {

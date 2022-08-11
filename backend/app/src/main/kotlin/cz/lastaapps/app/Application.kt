@@ -4,17 +4,20 @@ import cz.lastaapps.app.auth.AppPrincipal
 import cz.lastaapps.app.config.ServerConfig
 import dev.forst.ktor.apikey.apiKey
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.autohead.*
 import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.forwardedheaders.*
 import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import kotlinx.serialization.json.Json
 import org.koin.ktor.plugin.Koin
 
 fun main(args: Array<String>) = io.ktor.server.cio.EngineMain.main(args)
@@ -33,6 +36,14 @@ fun Application.module() {
             },
             appModule,
         )
+    }
+
+    install(ContentNegotiation) {
+        json(Json {
+            encodeDefaults = true
+//            ignoreUnknownKeys = true
+            prettyPrint = true
+        })
     }
 
     install(AutoHeadResponse)
