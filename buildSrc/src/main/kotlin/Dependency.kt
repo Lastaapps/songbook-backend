@@ -33,7 +33,7 @@ object Dependency {
     }
 
     object Ktor {
-        private const val version = "2.0.3"
+        private const val version = "2.1.0"
 
         object Client {
             const val core = "io.ktor:ktor-client-core:$version"
@@ -170,7 +170,7 @@ object Dependency {
     }
 
     object Google {
-        const val material = "com.google.android.material:material:1.6.1"
+        const val material = "com.google.android.material:material:1.7.0-beta01"
         const val playServices = "com.google.android.play:core-ktx:1.8.1"
         const val playServicesLocation = "com.google.android.gms:play-services-location:20.0.0"
         const val mlkitBarcode = "com.google.mlkit:barcode-scanning:17.0.2"
@@ -235,7 +235,7 @@ object Dependency {
     }
 
     object Coil {
-        private const val version = "2.1.0"
+        private const val version = "2.2.0"
         const val core = "io.coil-kt:coil:$version"
         const val base = "io.coil-kt:coil-base:$version"
         const val composeComplete = "io.coil-kt:coil-compose:$version"

@@ -9,7 +9,7 @@ object Tests {
     }
 
     object Kotest {
-        private const val version = "5.3.2"
+        private const val version = "5.4.2"
         const val jUnit5runner = "io.kotest:kotest-runner-junit5:$version"
         const val assertion = "io.kotest:kotest-assertions-core:$version"
         const val property = "io.kotest:kotest-property:$version"
