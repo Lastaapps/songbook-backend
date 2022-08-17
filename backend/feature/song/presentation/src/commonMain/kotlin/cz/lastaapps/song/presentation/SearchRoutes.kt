@@ -4,9 +4,11 @@ import cz.lastaapps.base.Result
 import cz.lastaapps.base.error.SongErrors
 import cz.lastaapps.base.error.util.respondWithError
 import cz.lastaapps.base.util.params
+import cz.lastaapps.song.domain.usecase.LoadSongUseCase
 import cz.lastaapps.song.domain.usecase.SearchSongUseCase
 import cz.lastaapps.song.presentation.model.Source
 import cz.lastaapps.song.presentation.model.payload.toPayload
+import cz.lastaapps.song.presentation.model.toDomain
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -15,6 +17,7 @@ import io.ktor.server.routing.*
 class SearchRoutes(
     app: Application,
     private val searchSong: SearchSongUseCase,
+    private val loadSong: LoadSongUseCase,
 ) {
     init {
         app.routing {
@@ -67,16 +70,21 @@ class SearchRoutes(
                     call.respondWithError(SongErrors.WebError.UnknownSource(it))
                     return@get
                 }
-            } ?: run {
+            }?.toDomain() ?: run {
                 call.respondWithError(SongErrors.WebError.MissionSource)
                 return@get
             }
+
             val remoteId = params["remoteId"]?.takeIf { it.isNotBlank() } ?: run {
                 call.respondWithError(SongErrors.WebError.MissionId)
                 return@get
             }
+            val params = LoadSongUseCase.Params(source, remoteId)
 
-            call.respond("Mind you own business")
+            when (val res = loadSong(params)) {
+                is Result.Error -> call.respondWithError(res)
+                is Result.Success -> call.respond(res.data.toPayload())
+            }
         }
     }
 }

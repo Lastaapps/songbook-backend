@@ -22,6 +22,7 @@ inline fun <R : Any> runCatchingNetworkExceptions(block: () -> Result<R>): Resul
             "SocketException",
             "HttpRequestTimeoutException",
             "ConnectException",
+            "SendCountExceedException",
             "SocketTimeoutException" -> NetworkError.FailedToConnect(name, e)
 
             else -> {

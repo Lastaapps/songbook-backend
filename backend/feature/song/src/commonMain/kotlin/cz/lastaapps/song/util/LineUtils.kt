@@ -14,7 +14,7 @@ fun List<String>.joinLines(): String = joinToString(separator = "\n")
 /**
  * In some songs every other line is empty - this function filters them out
  */
-fun List<String>.dropToMuchLines(): List<String> {
+fun List<String>.dropToManyLines(): List<String> {
     val even = filterIndexed { index, _ -> index % 2 == 0 }
     val odd = filterIndexed { index, _ -> index % 2 == 1 }
 

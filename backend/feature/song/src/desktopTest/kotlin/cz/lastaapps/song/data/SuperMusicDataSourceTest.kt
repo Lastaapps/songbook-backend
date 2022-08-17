@@ -10,6 +10,7 @@ import io.kotest.matchers.collections.shouldHaveAtLeastSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldNotBeBlank
+import io.kotest.matchers.string.shouldNotContain
 
 internal class SuperMusicDataSourceTest : StringSpec({
 
@@ -68,6 +69,8 @@ internal class SuperMusicDataSourceTest : StringSpec({
         source.loadSong("344750").asSuccess().data.text.shouldNotBeBlank()
         // video link
         source.loadSong("1327001").asSuccess().data.videoLink.shouldNotBeNull()
+        // listenable music
+        source.loadSong("3679").asSuccess().data.text.shouldNotContain("<img")
     }
 
 //    "just many things to load" {

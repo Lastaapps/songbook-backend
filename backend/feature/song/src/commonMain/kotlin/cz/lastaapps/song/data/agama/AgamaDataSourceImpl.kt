@@ -122,8 +122,8 @@ class AgamaDataSourceImpl(
         }.toResult()
     }
 
-    private suspend fun doSearchByEverythingRequest(query: String): Result<List<AgamaInterpretDto>> = coroutineScope {
-        runCatchingKtor {
+    private suspend fun doSearchByEverythingRequest(query: String): Result<List<AgamaInterpretDto>> = runCatchingKtor {
+        coroutineScope {
             listOfNotNull(query, query.removeAccents().takeIf { it != query }).map {
                 async {
                     client.get {

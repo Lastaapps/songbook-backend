@@ -73,8 +73,8 @@ class PisnickyAkordyDataSourceImpl(
 
     private suspend fun makeSearchRequest(
         query: String, name: Boolean = false, author: Boolean = false, album: Boolean = false,
-    ): Result<List<HttpResponse>> = coroutineScope {
-        runCatchingKtor {
+    ): Result<List<HttpResponse>> = runCatchingKtor {
+        coroutineScope {
             listOfNotNull(query, query.removeAccents().takeIf { it != query }).map {
                 async {
                     client.get { setupUrl(it, name, author, album) }

@@ -91,8 +91,8 @@ internal class BrnkniDataSourceImpl(
                 }.flatten().toPersistentList().toResult()
             }
 
-    private suspend fun commonRequest(query: String, searchForSongs: Boolean): Result<List<String>> = coroutineScope {
-        runCatchingKtor {
+    private suspend fun commonRequest(query: String, searchForSongs: Boolean): Result<List<String>> = runCatchingKtor {
+        coroutineScope {
             listOfNotNull(query, query.removeAccents().takeIf { it != query }).map {
                 async {
                     client.get {

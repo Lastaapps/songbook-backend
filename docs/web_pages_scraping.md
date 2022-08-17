@@ -298,9 +298,9 @@ https://supermusic.cz/skupina.php?idpiesne=123456
 <font color=black>((?>(?!</font).)*)</font>
 ```
 
-remove `<sup>`, `</sup>`, `<pre>`, `</pre>`
+remove `<sup>`, `</sup>`, `<pre>`, `</pre>`, `<div[^<>]*>`, `</div>`, `<img[^<>]*>`
 
-replace `<a[^<>]*>` → `[`, `<\/a>` → `]`, `<br/>` → `'\n'`
+replace `<a[^<>]*>` → `[`, `<\/a>` → `]`, `<[^b>]*br[^<>]*>` → `'\n'`
 
 ##### Song and author name
 

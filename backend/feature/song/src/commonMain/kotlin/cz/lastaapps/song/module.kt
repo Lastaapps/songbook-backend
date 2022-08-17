@@ -14,6 +14,8 @@ import cz.lastaapps.song.data.velkyzpevnik.VelkyZpevnikDataSourceImpl
 import cz.lastaapps.song.data.zpevniksakordy.ZpevnikSAkordyDataSourceImpl
 import cz.lastaapps.song.domain.SongRepository
 import cz.lastaapps.song.domain.sources.*
+import cz.lastaapps.song.domain.usecase.LoadSongUseCase
+import cz.lastaapps.song.domain.usecase.LoadSongUseCaseImpl
 import cz.lastaapps.song.domain.usecase.SearchSongUseCase
 import cz.lastaapps.song.domain.usecase.SearchSongUseCaseImpl
 import cz.lastaapps.song.util.SearchedSongComparator
@@ -47,5 +49,6 @@ val songModule = module {
 
     singleOf(::SongRepositoryImpl) { bind<SongRepository>() }
 
+    factoryOf(::LoadSongUseCaseImpl) { bind<LoadSongUseCase>() }
     factoryOf(::SearchSongUseCaseImpl) { bind<SearchSongUseCase>() }
 }

@@ -3,6 +3,8 @@ package cz.lastaapps.song.data
 import cz.lastaapps.base.Result
 import cz.lastaapps.base.toResult
 import cz.lastaapps.song.domain.SongRepository
+import cz.lastaapps.song.domain.model.Song
+import cz.lastaapps.song.domain.model.search.OnlineSource
 import cz.lastaapps.song.domain.model.search.SearchType
 import cz.lastaapps.song.domain.model.search.SearchedSong
 import kotlinx.collections.immutable.ImmutableList
@@ -41,4 +43,9 @@ internal class SongRepositoryImpl(
             is Result.Success -> it.data
         }
     }.flatten().toImmutableList().toResult()
+
+    override suspend fun load(source: OnlineSource, remoteId: String): Result<Song> {
+        val loader = sourceAggregator.getLoader(source)
+        return loader.loadSong(remoteId)
+    }
 }

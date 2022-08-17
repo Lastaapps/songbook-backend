@@ -11,6 +11,7 @@ import cz.lastaapps.song.util.*
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import kotlinx.collections.immutable.persistentListOf
 import org.lighthousegames.logging.logging
 
 internal class SuperMusicSongLoader(
@@ -35,6 +36,21 @@ internal class SuperMusicSongLoader(
     private val songNameMatcher =
         """<font class="test3">([^-]*)-([^<]*)</font>""".toRegex(regexOption)
 
+    private val songReplacementStingList = persistentListOf(
+        "<sup>" to "",
+        "</sup>" to "",
+        "<pre>" to "",
+        "</pre>" to "",
+        """</div>""" to "",
+    )
+    private val songReplacementRegexList = persistentListOf(
+        """<[^b>]*br[^<>]*>""".toRegex() to "\n",
+        """<a[^<>]*>""".toRegex() to "[",
+        """</a>""".toRegex() to "]",
+        """<img[^<>]*>""".toRegex() to "",
+        """<div[^<>]*>""".toRegex() to "",
+    )
+
     override suspend fun loadSong(id: String): Result<Song> {
         val link = supermusicLink(id)
         val html = loadSongRequest(link).getIfSuccess { return it }
@@ -51,17 +67,21 @@ internal class SuperMusicSongLoader(
                     )
                 ?.let {
                     val text = it
-                        .replace("<sup>", "")
-                        .replace("</sup>", "")
-                        .replace("<pre>", "")
-                        .replace("</pre>", "")
-                        .replace("""<a[^<>]*>""".toRegex(), "[")
-                        .replace("""</a>""".toRegex(), "]")
-                        .replace("""<[^b]*br[^<>]*>""".toRegex(), "\n")
+                        .let { progress ->
+                            songReplacementStingList.fold(progress) { string, instruction ->
+                                string.replace(instruction.first, instruction.second)
+                            }
+                        }
+                        .let { progress ->
+                            songReplacementRegexList.fold(progress) { string, instruction ->
+                                string.replace(instruction.first, instruction.second)
+                            }
+                        }
                         .lines()
                         .trimLines()
-                        .dropToMuchLines()
+                        .dropToManyLines()
                         .joinLines()
+                        .trimEnd()
 
                     Song(id, name.trim(), author.trim(), text, OnlineSource.SuperMusic, link, youtube)
                 }?.toResult() ?: SongErrors.ParseError.FailedToMatchSongText().toResult()

@@ -6,7 +6,11 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import kotlinx.serialization.Serializable
 
-suspend fun <T : Any> ApplicationCall.respondWithError(error: Result.Error<T>) = respondWithError(error.error)
+// to prevent unintentional responding with result and not its content
+@Suppress("unused")
+fun <T : Any> ApplicationCall.respond(res: Result<T>): Nothing = error("Cannot respond with pure result")
+
+suspend inline fun <T : Any> ApplicationCall.respondWithError(error: Result.Error<T>) = respondWithError(error.error)
 
 @Serializable
 private data class ErrorPayload(

@@ -1,6 +1,7 @@
 package cz.lastaapps.song.util
 
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.cache.*
 import io.ktor.client.plugins.compression.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -14,6 +15,10 @@ val songBookHttpClient
             json(Json {
                 ignoreUnknownKeys = true
             })
+        }
+        install(HttpRequestRetry) {
+            constantDelay(250)
+            retryOnServerErrors(1)
         }
         // TODO implement proper cache
         install(HttpCache)
