@@ -7,7 +7,7 @@ import io.ktor.server.response.*
 import kotlinx.serialization.Serializable
 
 // to prevent unintentional responding with result and not its content
-@Suppress("unused")
+@Suppress("unused", "UNUSED_PARAMETER")
 fun <T : Any> ApplicationCall.respond(res: Result<T>): Nothing = error("Cannot respond with pure result")
 
 suspend inline fun <T : Any> ApplicationCall.respondWithError(error: Result.Error<T>) = respondWithError(error.error)

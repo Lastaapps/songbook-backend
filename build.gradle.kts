@@ -1,9 +1,23 @@
-buildscript {
-}
+
 plugins {
-    val gradleVersion = "7.4.0-alpha07"
-//    id(Plugins.Android.application) version (gradleVersion) apply false
-//    id(Plugins.Android.library) version (gradleVersion) apply false
-    id(Plugins.Kotlin.android) version Dependency.Kotlin.version apply false
-    id(Plugins.Kotlin.serialization) version Dependency.Kotlin.version apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+
+    alias(libs.plugins.benNamesVersions)
+    alias(libs.plugins.versionCatalogUpdate)
 }
+
+
+// https://github.com/littlerobots/version-catalog-update-plugin#configuration
+versionCatalogUpdate {
+    sortByKey.set(true)
+    // pins version - wouldn't be changed
+    pin {}
+    // keeps entry - wouldn't be deleted when unused
+    keep {
+        keepUnusedVersions.set(true)
+        keepUnusedLibraries.set(true)
+        keepUnusedPlugins.set(true)
+    }
+}
+

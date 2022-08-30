@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="song-desktop">
+    <output-path>$PROJECT_DIR$/backend/feature/song/build/libs</output-path>
+    <root id="archive" name="song-desktop.jar">
+      <element id="module-output" name="Songbook.backend.feature.song.desktopMain" />
+    </root>
+  </artifact>
+</component>

@@ -1,9 +1,5 @@
 plugins {
-    application
-    id(Plugins.Kotlin.jvm)
-    id(Plugins.Kotlin.serialization)
-    id(Plugins.Java.kotlin)
-    id(Plugins.Shadow.plugin) version Plugins.Shadow.version
+    id("ktor-server-convention")
 }
 
 application {
@@ -12,25 +8,8 @@ application {
 }
 
 dependencies {
-    implementation(project(Modules.Backend.Feature.songPresentation))
-    implementation(project(Modules.Backend.base))
-
-    implementation(Dependency.Koin.core)
-    implementation(Dependency.Koin.ktorServer)
-
-    implementation(Dependency.Ktor.Server.core)
-    implementation(Dependency.Ktor.Server.cio)
-    implementation(Dependency.Ktor.Server.auth)
-    implementation(Dependency.Ktor.Server.autoHeadResponse)
-    implementation(Dependency.Ktor.Server.callLogging)
-    implementation(Dependency.Ktor.Server.compression)
-    implementation(Dependency.Ktor.Server.contentNegotiation)
-    implementation(Dependency.Ktor.Server.defaultHeaders)
-    implementation(Dependency.Ktor.Server.forwardedHeaders)
-    implementation(Dependency.Ktor.Server.httpRedirect)
-    implementation(Dependency.Ktor.Server.jsonSerialization)
-    implementation(Dependency.Ktor.Server.statusPages)
-    implementation(Dependency.Ktor.Server.Unofficial.apiKeyAuth)
+    implementation(projects.backend.feature.song.presentation)
+    implementation(projects.backend.base)
 }
 
 tasks.getByName<Test>("test") {
