@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="agata-auth-desktop">
+    <output-path>$PROJECT_DIR$/agata-auth/build/libs</output-path>
+    <root id="archive" name="agata-auth-desktop.jar">
+      <element id="module-output" name="Songbook.agata-auth.desktopMain" />
+    </root>
+  </artifact>
+</component>

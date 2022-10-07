@@ -2,7 +2,7 @@
   <artifact type="jar" name="base-desktop">
     <output-path>$PROJECT_DIR$/backend/base/build/libs</output-path>
     <root id="archive" name="base-desktop.jar">
-      <element id="module-output" name="Songbook.backend.base.desktopMain" />
+      <element id="module-output" name="Menza-backend.backend.base.desktopMain" />
     </root>
   </artifact>
 </component>

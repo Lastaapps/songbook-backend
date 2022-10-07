@@ -15,9 +15,10 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Songbook"
+rootProject.name = "Menza-backend"
 
 include(
+    ":agata-auth",
     ":backend:app",
     ":backend:base",
     ":backend:feature:song",
